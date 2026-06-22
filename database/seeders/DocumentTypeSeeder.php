@@ -1,0 +1,105 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\DocumentType;
+use Illuminate\Database\Seeder;
+
+class DocumentTypeSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        $documentType = [
+            'BERITA_ACARA',
+            'BERITA_ACARA_GUBERNUR',
+            'BERITA_DAERAH',
+            'DAFTAR_HADIR',
+            'DAFTAR_PENGELUARAN_RIIL_(DPR)',
+            'KENAIKAN_GAJI_BERKALA_(KGB)',
+            'KEPUTUSAN_GUBERNUR',
+            'KEPUTUSAN_GUBERNUR_TTE_SETDA',
+            'LAMPIRAN_CHECKLIST_HASIL_VERIFIKASI_KELENGKAPAN_DOKUMEN_SPP',
+            'LAMPIRAN_SURAT',
+            'LAPORAN',
+            'LAPORAN_GUBERNUR',
+            'LAPORAN_HASIL_PENGUJIAN_LABORATORIUM_BENIH',
+            'LAPORAN_KEUANGAN_BUKU_KAS_UMUM_',
+            'LAPORAN_KEUANGAN_BUKU_PEMBANTU_PAJAK',
+            'LAPORAN_KEUANGAN_BUKU_PEMBANTU_SUB_RINCIAN_OBJEK_BELANJA',
+            'LAPORAN_KEUANGAN_DAFTAR_TRANSAKSI_HARIAN_BELANJA_DAERAH',
+            'LAPORAN_KEUANGAN_SPJ',
+            'LAPORAN_KEUANGAN_SURAT_PERNYATAAN_TANGGUNG_JAWAB_BELANJA',
+            'LAPORAN_LANDSCAPE_A4',
+            'LAPORAN_LANDSCAPE_F4',
+            'LEMBARAN_DAERAH',
+            'MEMO',
+            'NOTA_DINAS',
+            'NOTA_DINAS_GUBERNUR',
+            'NOTA_PENCAIRAN_DANA_(NPD)',
+            'NOTULEN',
+            'PENGUMUMAN',
+            'PERATURAN_DAERAH',
+            'PERATURAN_GUBERNUR',
+            'PERSETUJUAN_GUBERNUR_DENGAN_DPRD',
+            'PIAGAM',
+            'PROPOSAL',
+            'RADIOGRAM',
+            'REKAP_GAJI',
+            'REKAP_TUNJANGAN_TAMBAHAN_PENGHASILAN',
+            'REKOMENDASI_GUBERNUR',
+            'RENCANA_RINCIAN_PENGUNAAN',
+            'SASARAN_KINERJA_PEGAWAI_(SKP)',
+            'SERTIFIKAT',
+            'SERTIFIKAT_BENIH_UNGGUL',
+            'SURAT_BIASA',
+            'SURAT_BIASA_GUBERNUR_/_WAKIL_GUBERNUR',
+            'SURAT_BIASA_GUBERNUR_ATAU_WAKIL_GUBERNUR',
+            'SURAT_BIASA_SEKRETARIS_DAERAH___KEPALA_PERANGKAT_DAERAH_ATAS_NAMA_GUBERNUR',
+            'SURAT_EDARAN',
+            'SURAT_EDARAN_GUBERNUR',
+            'SURAT_EDARAN_SEKRETARIS_DAERAH_ATAS_NAMA_GUBERNUR',
+            'SURAT_INSTRUKSI',
+            'SURAT_IZIN',
+            'SURAT_IZIN_GUBERNUR',
+            'SURAT_IZIN_SEKRETARIS_DAERAH___KEPALA_PERANGKAT_DAERAH_ATAS_NAMA_GUBERNUR',
+            'SURAT_KEPUTUSAN',
+            'SURAT_KETERANGAN',
+            'SURAT_KETERANGAN_GUBERNUR',
+            'SURAT_KETERANGAN_PEMBERHENTIAN_PEMBAYARAN_(SKPP)',
+            'SURAT_KETERANGAN_PENETAPAN_ANGKA_KREDIT_(SK_PAK)',
+            'SURAT_KETERANGAN_SEKRETARIS_DAERAH___KEPALA_PERANGKAT_DAERAH_ATAS_NAMA_GUBERNUR',
+            'SURAT_PANGGILAN',
+            'SURAT_PANGGILAN_SEKRETARIS_DAERAH_ATAS_NAMA_GUBERNUR',
+            'SURAT_PENGANTAR',
+            'SURAT_PERINTAH_GUBERNUR',
+            'SURAT_PERINTAH_MEMBAYAR_(SPM)',
+            'SURAT_PERINTAH_PENCAIRAN_DANA_(SP2D)',
+            'SURAT_PERINTAH_PERANGKAT_DAERAH',
+            'SURAT_PERJALANAN_DINAS_',
+            'SURAT_PERMINTAAN_PEMBAYARAN_(SPP)',
+            'SURAT_PERNYATAAN',
+            'SURAT_PERNYATAAN_MELAKSANAKAN_TUGAS',
+            'SURAT_PERNYATAAN_MELAKSANAKAN_TUGAS_GUBERNUR',
+            'SURAT_PERNYATAAN_TANGGUNG_JAWAB_MUTLAK_(SPTJM)',
+            'SURAT_PERNYATAAN_VERIFIKASI_PPK_SKPD',
+            'SURAT_PERNYATAAN_VERIFIKASI_PPK-SKPD',
+            'SURAT_REKOMENDASI',
+            'SURAT_TANDA_REGISTRASI_TENAGA_TEKNIS_KEFARMASIAN_(STRTTK)',
+            'SURAT_TANDA_TAMAT_PENDIDIKAN_DAN_PELATIHAN_(STTPP)',
+            'SURAT_UNDANGAN',
+            'SURAT_UNDANGAN_GUBERNUR',
+            'SURAT_UNDANGAN_GUBERNUR_(PLAT_MERAH)',
+            'SURAT_UNDANGAN_SEKRETARIS_DAERAH___KEPALA_PERANGKAT_DAERAH_ATAS_NAMA_GUBERNUR',
+            'TELAAHAN_STAF',
+            'VISUM_SURAT_PERJALANAN_DINAS',
+        ];
+
+        foreach ($documentType as $doc) {
+            DocumentType::firstOrCreate(['name' => $doc]);
+        }
+    }
+}

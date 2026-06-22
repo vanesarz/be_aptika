@@ -1,0 +1,59 @@
+<?php
+
+
+namespace Database\Seeders;
+
+use App\Models\GeneralOpd;
+use Illuminate\Database\Seeder;
+
+class GeneralOpdSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $opds = [
+            "BADAN PENGHUBUNG",
+            "SEKRETARIAT DPRD",
+            "DINAS KEPENDUDUKAN DAN PENCATATAN SIPIL",
+            "DINAS PEMUDA DAN OLAHRAGA",
+            "DINAS PEMBERDAYAAN MASYARAKAT DAN DESA",
+            "BADAN PENANGGULANGAN BENCANA DAERAH",
+            "INSPEKTORAT DAERAH",
+            "BADAN PENGEMBANGAN SUMBER DAYA MANUSIA",
+            "SATUAN POLISI PAMONG PRAJA",
+            "DINAS PENANAMAN MODAL DAN PELAYANAN TERPADU SATU PINTU",
+            "BADAN KESATUAN BANGSA DAN POLITIK",
+            "BADAN PENELITIAN DAN PENGEMBANGAN DAERAH",
+            "BADAN PERENCANAAN PEMBANGUNAN DAERAH",
+            "DINAS KOMUNIKASI DAN INFORMATIKA",
+            "DINAS PARIWISATA DAN KEBUDAYAAN",
+            "DINAS SOSIAL",
+            "BADAN KEPEGAWAIAN DAERAH",
+            "DINAS KEHUTANAN",
+            "DINAS PERINDUSTRIAN DAN PERDAGANGAN",
+            "DINAS PERPUSTAKAAN DAN KEARSIPAN DAERAH",
+            "DINAS KELAUTAN DAN PERIKANAN",
+            "DINAS PEMBERDAYAAN PEREMPUAN, PERLINDUNGAN ANAK, DAN KELUARGA BERENCANA",
+            "DINAS PERKEBUNAN",
+            "DINAS KOPERASI DAN USAHA KECIL",
+            "DINAS KETAHANAN PANGAN DAN PETERNAKAN",
+            "DINAS PERHUBUNGAN",
+            "DINAS SUMBER DAYA AIR",
+            "DINAS BINA MARGA DAN PENATAAN RUANG",
+            "DINAS TANAMAN PANGAN DAN HORTIKULTURA",
+            "DINAS LINGKUNGAN HIDUP",
+            "DINAS PERUMAHAN DAN PERMUKIMAN",
+            "BADAN PENGELOLAAN KEUANGAN DAN ASET DAERAH",
+            "DINAS TENAGA KERJA DAN TRANSMIGRASI",
+            "DINAS ENERGI DAN SUMBER DAYA MINERAL",
+            "BADAN PENDAPATAN DAERAH",
+            "SEKRETARIAT DAERAH",
+            "DINAS KESEHATAN",
+            "DINAS PENDIDIKAN"
+
+        ];
+
+        foreach ($opds as $opd) {
+            GeneralOpd::updateOrCreate(['name' => $opd]);
+        }
+    }
+}
