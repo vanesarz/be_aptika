@@ -33,6 +33,11 @@ use App\Http\Controllers\Appman\InventoryStatController;
 use App\Http\Controllers\Appman\KatalapsRegencyController;
 use App\Http\Controllers\Appman\TeamSupportFacilityController;
 
+use App\Http\Controllers\FormPerubahanITController;
+
+Route::get('/form-perubahan-it/opd', [FormPerubahanITController::class, 'getOpdList']);
+Route::post('/form-perubahan-it', [FormPerubahanITController::class, 'store']);
+
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 
