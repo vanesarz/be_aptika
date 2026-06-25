@@ -35,8 +35,15 @@ use App\Http\Controllers\Appman\TeamSupportFacilityController;
 
 use App\Http\Controllers\FormPerubahanITController;
 
+// Jalur khusus mengambil data OPD untuk dropdown publik
 Route::get('/form-perubahan-it/opd', [FormPerubahanITController::class, 'getOpdList']);
-Route::post('/form-perubahan-it', [FormPerubahanITController::class, 'store']);
+
+// Jalur API Utama CRUD form-perubahan-it
+Route::get('/form-perubahan-it', [FormPerubahanITController::class, 'index']);       // Get List Semua Data
+Route::post('/form-perubahan-it', [FormPerubahanITController::class, 'store']);      // Create Data Baru
+Route::get('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'show']);   // Get Detail Satuan
+Route::put('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'update']); // Update Data
+Route::delete('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'destroy']); // Delete Data
 
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
