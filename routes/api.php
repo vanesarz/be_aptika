@@ -44,6 +44,7 @@ Route::post('/form-perubahan-it', [FormPerubahanITController::class, 'store']); 
 Route::get('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'show']);   // Get Detail Satuan
 Route::put('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'update']); // Update Data
 Route::delete('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'destroy']); // Delete Data
+Route::get('/form-perubahan-it/{id}/pdf', [FormPerubahanITController::class, 'exportPdf']); // Export PDF
 
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);

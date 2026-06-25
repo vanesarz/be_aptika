@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\GeneralOpd;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class FormPerubahanITController extends Controller
 {
@@ -190,6 +191,47 @@ class FormPerubahanITController extends Controller
             return response()->json(['message' => 'Data formulir berhasil dihapus!'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal menghapus data: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // ==========================================
+    // 7. GENERATE PDF: Mengubah Data Menjadi File PDF Resmi
+    // ==========================================
+    public function exportPdf($id)
+    {
+        try {
+            // Ambil data spesifik beserta nama Perangkat Daerah-nya
+            $data = DB::table('form_perubahan_it')
+                ->leftJoin('general_opd', 'form_perubahan_it.perangkat_daerah_id', '=', 'general_opd.id')
+                ->select('form_perubahan_it.*', 'general_opd.name as nama_perangkat_daerah')
+                ->where('form_perubahan_it.id', $id)
+                ->first();
+
+            if (!$data) {
+                return response()->json(['message' => 'Data tidak ditemukan untuk dicetak.'], 404);
+            }
+
+            // Decode string JSON dari database menjadi array PHP agar bisa dicheck oleh Blade templating
+            $jenis_perubahan = json_decode($data->jenis_perubahan ?? '[]', true);
+            $jenis_permohonan = json_decode($data->jenis_permohonan ?? '[]', true);
+            $kriteria_risiko = json_decode($data->kriteria_risiko ?? '[]', true);
+
+            // Inisialisasi Engine DomPDF dengan view template kita
+            $pdf = Pdf::loadView('pdf.form_perubahan_it', compact(
+                'data', 
+                'jenis_perubahan', 
+                'jenis_permohonan', 
+                'kriteria_risiko'
+            ));
+
+            // Set ukuran kertas menjadi A4 dengan orientasi Portrait (Tegak)
+            $pdf->setPaper('a4', 'portrait');
+
+            // Mengembalikan biner PDF untuk otomatis didownload oleh browser/Postman
+            return $pdf->download('Form_Perubahan_IT_' . $data->no_rfc . '.pdf');
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Gagal membuat file PDF: ' . $e->getMessage()], 500);
         }
     }
 }
