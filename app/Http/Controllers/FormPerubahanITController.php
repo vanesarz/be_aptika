@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Models\GeneralOpd;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -49,11 +50,14 @@ class FormPerubahanITController extends Controller
     // ==========================================
     public function store(Request $request)
     {
+        // Validasi input text dan file attachment
         $request->validate([
             'pemohon' => 'required|string',
             'perangkat_daerah_id' => 'required|exists:general_opd,id',
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
+            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240',
+            'dokumen_pendukung_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240',
         ]);
 
         try {
@@ -63,8 +67,21 @@ class FormPerubahanITController extends Controller
                 return 'RFC-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
             });
 
+            // Handling file upload Tanda Tangan
+            $ttdPath = null;
+            if ($request->hasFile('tanda_tangan_file')) {
+                $ttdPath = $request->file('tanda_tangan_file')->store('tanda_tangan', 'public');
+            }
+
+            // Handling file upload Dokumen Pendukung
+            $dokumenPath = null;
+            if ($request->hasFile('dokumen_pendukung_file')) {
+                $dokumenPath = $request->file('dokumen_pendukung_file')->store('dokumen_pendukung', 'public');
+            }
+
             $id = DB::table('form_perubahan_it')->insertGetId([
                 'no_rfc' => $noRfc,
+                'status' => 'menunggu', // Default status awal saat pengajuan baru dibuat
                 'pemohon' => $request->pemohon,
                 'unit_kerja' => $request->unit_kerja,
                 'perangkat_daerah_id' => $request->perangkat_daerah_id,
@@ -86,14 +103,19 @@ class FormPerubahanITController extends Controller
                 'biaya_perubahan' => $request->biaya_perubahan ?? '0',
                 'waktu_perubahan' => $request->waktu_perubahan,
                 'tanggal_permohonan' => $request->tanggal_permohonan,
+                'tanda_tangan_file' => $ttdPath,
+                'dokumen_pendukung_file' => $dokumenPath,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
             return response()->json([
-                'message' => 'Formulir berhasil disubmit!',
+                'message' => 'Formulir beserta berkas berhasil disubmit!',
                 'id' => $id,
-                'no_rfc' => $noRfc
+                'no_rfc' => $noRfc,
+                'status' => 'menunggu',
+                'tanda_tangan_url' => $ttdPath ? asset('storage/' . $ttdPath) : null,
+                'dokumen_pendukung_url' => $dokumenPath ? asset('storage/' . $dokumenPath) : null
             ], 201);
 
         } catch (\Exception $e) {
@@ -117,6 +139,10 @@ class FormPerubahanITController extends Controller
             $data->jenis_perubahan = json_decode($data->jenis_perubahan ?? '[]');
             $data->jenis_permohonan = json_decode($data->jenis_permohonan ?? '[]');
             $data->kriteria_risiko = json_decode($data->kriteria_risiko ?? '[]');
+            
+            // Tambahkan URL akses penuh file untuk Frontend
+            $data->tanda_tangan_url = $data->tanda_tangan_file ? asset('storage/' . $data->tanda_tangan_file) : null;
+            $data->dokumen_pendukung_url = $data->dokumen_pendukung_file ? asset('storage/' . $data->dokumen_pendukung_file) : null;
 
             return response()->json($data, 200);
         } catch (\Exception $e) {
@@ -134,16 +160,18 @@ class FormPerubahanITController extends Controller
             'perangkat_daerah_id' => 'required|exists:general_opd,id',
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
+            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240',
+            'dokumen_pendukung_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240',
         ]);
 
         try {
-            $exists = DB::table('form_perubahan_it')->where('id', $id)->exists();
+            $currentData = DB::table('form_perubahan_it')->where('id', $id)->first();
 
-            if (!$exists) {
+            if (!$currentData) {
                 return response()->json(['message' => 'Data tidak ditemukan.'], 404);
             }
 
-            DB::table('form_perubahan_it')->where('id', $id)->update([
+            $updateData = [
                 'pemohon' => $request->pemohon,
                 'unit_kerja' => $request->unit_kerja,
                 'perangkat_daerah_id' => $request->perangkat_daerah_id,
@@ -166,36 +194,92 @@ class FormPerubahanITController extends Controller
                 'waktu_perubahan' => $request->waktu_perubahan,
                 'tanggal_permohonan' => $request->tanggal_permohonan,
                 'updated_at' => now(),
-            ]);
+            ];
 
-            return response()->json(['message' => 'Data formulir berhasil diperbarui!'], 200);
+            // Jika ada file tanda tangan baru, hapus berkas lama dan simpan yang baru
+            if ($request->hasFile('tanda_tangan_file')) {
+                if ($currentData->tanda_tangan_file) {
+                    Storage::disk('public')->delete($currentData->tanda_tangan_file);
+                }
+                $updateData['tanda_tangan_file'] = $request->file('tanda_tangan_file')->store('tanda_tangan', 'public');
+            }
+
+            // Jika ada file dokumen pendukung baru, hapus berkas lama dan simpan yang baru
+            if ($request->hasFile('dokumen_pendukung_file')) {
+                if ($currentData->dokumen_pendukung_file) {
+                    Storage::disk('public')->delete($currentData->dokumen_pendukung_file);
+                }
+                $updateData['dokumen_pendukung_file'] = $request->file('dokumen_pendukung_file')->store('dokumen_pendukung', 'public');
+            }
+
+            DB::table('form_perubahan_it')->where('id', $id)->update($updateData);
+
+            return response()->json(['message' => 'Data formulir dan berkas berhasil diperbarui!'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal memperbarui data: ' . $e->getMessage()], 500);
         }
     }
 
     // ==========================================
-    // 6. DELETE: Hapus Data Pengajuan
+    // 6. UPDATE STATUS: Khusus Pengelolaan Admin
     // ==========================================
-    public function destroy($id)
+    public function updateStatus(Request $request, $id)
     {
+        $request->validate([
+            'status' => 'required|in:menunggu,disetujui,ditolak'
+        ]);
+
         try {
             $data = DB::table('form_perubahan_it')->where('id', $id);
 
             if (!$data->exists()) {
+                return response()->json(['message' => 'Data pengajuan tidak ditemukan.'], 404);
+            }
+
+            $data->update([
+                'status' => $request->status,
+                'updated_at' => now()
+            ]);
+
+            return response()->json([
+                'message' => 'Status formulir berhasil diperbarui menjadi ' . $request->status
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Gagal memperbarui status: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // ==========================================
+    // 7. DELETE: Hapus Data Pengajuan
+    // ==========================================
+    public function destroy($id)
+    {
+        try {
+            $data = DB::table('form_perubahan_it')->where('id', $id)->first();
+
+            if (!$data) {
                 return response()->json(['message' => 'Data tidak ditemukan.'], 404);
             }
 
-            $data->delete();
+            // Hapus file fisik dari storage sebelum baris data di database dihapus
+            if ($data->tanda_tangan_file) {
+                Storage::disk('public')->delete($data->tanda_tangan_file);
+            }
+            if ($data->dokumen_pendukung_file) {
+                Storage::disk('public')->delete($data->dokumen_pendukung_file);
+            }
 
-            return response()->json(['message' => 'Data formulir berhasil dihapus!'], 200);
+            DB::table('form_perubahan_it')->where('id', $id)->delete();
+
+            return response()->json(['message' => 'Data formulir beserta file terkait berhasil dihapus!'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal menghapus data: ' . $e->getMessage()], 500);
         }
     }
 
     // ==========================================
-    // 7. GENERATE PDF: Mengubah Data Menjadi File PDF Resmi
+    // 8. GENERATE PDF: Ekspor ke File PDF Resmi
     // ==========================================
     public function exportPdf($id)
     {
@@ -211,7 +295,7 @@ class FormPerubahanITController extends Controller
                 return response()->json(['message' => 'Data tidak ditemukan untuk dicetak.'], 404);
             }
 
-            // Decode string JSON dari database menjadi array PHP agar bisa dicheck oleh Blade templating
+            // Decode string JSON dari database menjadi array PHP agar bisa dicek oleh Blade templating
             $jenis_perubahan = json_decode($data->jenis_perubahan ?? '[]', true);
             $jenis_permohonan = json_decode($data->jenis_permohonan ?? '[]', true);
             $kriteria_risiko = json_decode($data->kriteria_risiko ?? '[]', true);
@@ -227,8 +311,8 @@ class FormPerubahanITController extends Controller
             // Set ukuran kertas menjadi A4 dengan orientasi Portrait (Tegak)
             $pdf->setPaper('a4', 'portrait');
 
-            // Mengembalikan biner PDF untuk otomatis didownload oleh browser/Postman
-            return $pdf->download('Form_Perubahan_IT_' . $data->no_rfc . '.pdf');
+            // Menggunakan stream agar dapat di-preview secara live di tab browser baru
+            return $pdf->stream('Form_Perubahan_IT_' . $data->no_rfc . '.pdf');
 
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal membuat file PDF: ' . $e->getMessage()], 500);

@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('form_perubahan_it', function (Blueprint $table) {
             $table->id();
             $table->string('no_rfc')->unique()->nullable();
+            $table->enum('status', ['menunggu', 'disetujui', 'ditolak'])->default('menunggu');
             
             // Informasi Pemohon
             $table->string('pemohon');
@@ -45,6 +46,10 @@ return new class extends Migration
             $table->string('waktu_perubahan')->nullable();
             $table->string('lampiran')->nullable(); // Bisa string path jika nanti upload file
             $table->date('tanggal_permohonan');
+
+            // Tanda Tangan & Dokumen Pendukung
+            $table->string('tanda_tangan_file')->nullable();
+            $table->string('dokumen_pendukung_file')->nullable();
             
             $table->timestamps();
         });
