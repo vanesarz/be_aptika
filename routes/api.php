@@ -42,7 +42,7 @@ Route::get('/form-perubahan-it/opd', [FormPerubahanITController::class, 'getOpdL
 Route::get('/form-perubahan-it', [FormPerubahanITController::class, 'index']);       // Get List Semua Data
 Route::post('/form-perubahan-it', [FormPerubahanITController::class, 'store']);      // Create Data Baru
 Route::get('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'show']);   // Get Detail Satuan
-Route::put('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'update']); // Update Data
+Route::post('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'update']); // Update Data
 Route::delete('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'destroy']); // Delete Data
 Route::get('/form-perubahan-it/{id}/pdf', [FormPerubahanITController::class, 'exportPdf']); // Export PDF
 Route::patch('/form-perubahan-it/{id}/status', [FormPerubahanITController::class, 'updateStatus']); // Update Status (menunggu, disetujui, ditolak)

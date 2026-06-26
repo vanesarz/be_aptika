@@ -50,14 +50,18 @@ class FormPerubahanITController extends Controller
     // ==========================================
     public function store(Request $request)
     {
-        // Validasi input text dan file attachment
+        // Validasi input text, file attachment, serta checkbox persetujuan wajib
         $request->validate([
             'pemohon' => 'required|string',
             'perangkat_daerah_id' => 'required|exists:general_opd,id',
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
-            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240',
-            'dokumen_pendukung_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240',
+            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240', // Maksimal 10MB sesuai form frontend
+            'dokumen_pendukung_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240', // Maksimal 10MB
+            
+            // Aturan 'accepted' memaksa kolom ini bernilai true/1/yes agar lolos validasi
+            'setuju_data_benar' => 'required|accepted',
+            'setuju_atasan' => 'required|accepted',
         ]);
 
         try {
@@ -105,12 +109,17 @@ class FormPerubahanITController extends Controller
                 'tanggal_permohonan' => $request->tanggal_permohonan,
                 'tanda_tangan_file' => $ttdPath,
                 'dokumen_pendukung_file' => $dokumenPath,
+                
+                // Menyimpan status persetujuan ke database (pasti bernilai 1 karena lolos validasi 'accepted')
+                'setuju_data_benar' => 1,
+                'setuju_atasan' => 1,
+                
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
             return response()->json([
-                'message' => 'Formulir beserta berkas berhasil disubmit!',
+                'message' => 'Formulir beserta berkas dan konfirmasi persetujuan berhasil disubmit!',
                 'id' => $id,
                 'no_rfc' => $noRfc,
                 'status' => 'menunggu',
