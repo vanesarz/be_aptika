@@ -50,7 +50,7 @@ return new class extends Migration
 
             // Tanda Tangan & Dokumen Pendukung
             $table->string('tanda_tangan_file')->nullable();
-            $table->string('dokumen_pendukung_file')->nullable();
+            $table->text('dokumen_pendukung_file')->nullable();
 
             // Persetujuan
             $table->boolean('setuju_data_benar')->default(0);

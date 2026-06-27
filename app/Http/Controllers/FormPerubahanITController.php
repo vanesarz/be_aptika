@@ -32,11 +32,17 @@ class FormPerubahanITController extends Controller
                 ->orderBy('form_perubahan_it.id', 'desc')
                 ->get();
 
-            // Lakukan decode field JSON agar Frontend menerima format Array, bukan String mentah
+            // Lakukan decode field JSON agar Frontend menerima format Array murni
             foreach ($lists as $item) {
                 $item->jenis_perubahan = json_decode($item->jenis_perubahan ?? '[]');
                 $item->jenis_permohonan = json_decode($item->jenis_permohonan ?? '[]');
                 $item->kriteria_risiko = json_decode($item->kriteria_risiko ?? '[]');
+                
+                // Decode dokumen pendukung menjadi array url publik
+                $dokumenFiles = json_decode($item->dokumen_pendukung_file ?? '[]');
+                $item->dokumen_pendukung_urls = array_map(function($path) {
+                    return asset('storage/' . $path);
+                }, $dokumenFiles);
             }
 
             return response()->json($lists, 200);
@@ -50,16 +56,24 @@ class FormPerubahanITController extends Controller
     // ==========================================
     public function store(Request $request)
     {
-        // Validasi input text, file attachment, serta checkbox persetujuan wajib
+        // Validasi input text, multi-file attachment opsional, pakta integritas, serta kriteria risiko
         $request->validate([
             'pemohon' => 'required|string',
             'email_dinas' => 'required|email:rfc,dns', // Memastikan format email dinas valid
             'perangkat_daerah_id' => 'required|exists:general_opd,id',
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
-            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240', 
-            'dokumen_pendukung_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240', 
+            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240', // Maksimal 10MB
             
+            // Konfigurasi Validasi Multi-File Dokumen Pendukung (Maksimal 5 Berkas, Boleh Kosong)
+            'dokumen_pendukung_file' => 'nullable|array|max:5', 
+            'dokumen_pendukung_file.*' => 'file|mimes:jpeg,jpg,png,pdf|max:10240', // Validasi tiap komponen berkas
+            
+            // Validasi kriteria_risiko dikunci ketat oleh Backend
+            'kriteria_risiko' => 'nullable|array',
+            'kriteria_risiko.*' => 'in:Malapetaka,Sangat Berat,Berat,Agak Berat,Tidak Berat',
+            
+            // Checkbox pernyataan wajib disetujui
             'setuju_data_benar' => 'required|accepted',
             'setuju_atasan' => 'required|accepted',
         ]);
@@ -71,16 +85,19 @@ class FormPerubahanITController extends Controller
                 return 'RFC-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
             });
 
-            // Handling file upload Tanda Tangan
+            // Handling file upload Tanda Tangan (Single File)
             $ttdPath = null;
             if ($request->hasFile('tanda_tangan_file')) {
                 $ttdPath = $request->file('tanda_tangan_file')->store('tanda_tangan', 'public');
             }
 
-            // Handling file upload Dokumen Pendukung
-            $dokumenPath = null;
+            // Handling Multi-File Upload Dokumen Pendukung
+            $dokumenPaths = [];
             if ($request->hasFile('dokumen_pendukung_file')) {
-                $dokumenPath = $request->file('dokumen_pendukung_file')->store('dokumen_pendukung', 'public');
+                foreach ($request->file('dokumen_pendukung_file') as $file) {
+                    $path = $file->store('dokumen_pendukung', 'public');
+                    $dokumenPaths[] = $path;
+                }
             }
 
             $id = DB::table('form_perubahan_it')->insertGetId([
@@ -109,14 +126,20 @@ class FormPerubahanITController extends Controller
                 'waktu_perubahan' => $request->waktu_perubahan,
                 'tanggal_permohonan' => $request->tanggal_permohonan,
                 'tanda_tangan_file' => $ttdPath,
-                'dokumen_pendukung_file' => $dokumenPath,
+                
+                // Mengonversi array path menjadi format teks JSON sebelum masuk DB
+                'dokumen_pendukung_file' => json_encode($dokumenPaths),
                 
                 'setuju_data_benar' => 1,
                 'setuju_atasan' => 1,
-                
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            // Transformasi path ke bentuk URL publik penuh untuk respon data
+            $dokumenUrls = array_map(function($path) {
+                return asset('storage/' . $path);
+            }, $dokumenPaths);
 
             return response()->json([
                 'message' => 'Formulir beserta berkas dan konfirmasi persetujuan berhasil disubmit!',
@@ -124,7 +147,7 @@ class FormPerubahanITController extends Controller
                 'no_rfc' => $noRfc,
                 'status' => 'menunggu',
                 'tanda_tangan_url' => $ttdPath ? asset('storage/' . $ttdPath) : null,
-                'dokumen_pendukung_url' => $dokumenPath ? asset('storage/' . $dokumenPath) : null
+                'dokumen_pendukung_urls' => $dokumenUrls
             ], 201);
 
         } catch (\Exception $e) {
@@ -138,6 +161,7 @@ class FormPerubahanITController extends Controller
     public function show($id)
     {
         try {
+            // Mengambil detail data dengan leftJoin ke tabel general_opd agar nama instansi terbawa ke frontend
             $data = DB::table('form_perubahan_it')
                 ->leftJoin('general_opd', 'form_perubahan_it.perangkat_daerah_id', '=', 'general_opd.id')
                 ->select('form_perubahan_it.*', 'general_opd.name as nama_perangkat_daerah')
@@ -153,9 +177,13 @@ class FormPerubahanITController extends Controller
             $data->jenis_permohonan = json_decode($data->jenis_permohonan ?? '[]');
             $data->kriteria_risiko = json_decode($data->kriteria_risiko ?? '[]');
             
-            // Tambahkan URL akses penuh file untuk Frontend
+            // Tambahkan URL akses penuh berkas tunggal maupun jamak untuk Frontend
             $data->tanda_tangan_url = $data->tanda_tangan_file ? asset('storage/' . $data->tanda_tangan_file) : null;
-            $data->dokumen_pendukung_url = $data->dokumen_pendukung_file ? asset('storage/' . $data->dokumen_pendukung_file) : null;
+            
+            $dokumenFiles = json_decode($data->dokumen_pendukung_file ?? '[]');
+            $data->dokumen_pendukung_urls = array_map(function($path) {
+                return asset('storage/' . $path);
+            }, $dokumenFiles);
 
             return response()->json($data, 200);
         } catch (\Exception $e) {
@@ -175,7 +203,13 @@ class FormPerubahanITController extends Controller
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
             'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240',
-            'dokumen_pendukung_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240',
+            
+            // Validasi multi-file pada update data
+            'dokumen_pendukung_file' => 'nullable|array|max:5',
+            'dokumen_pendukung_file.*' => 'file|mimes:jpeg,jpg,png,pdf|max:10240',
+            
+            'kriteria_risiko' => 'nullable|array',
+            'kriteria_risiko.*' => 'in:Malapetaka,Sangat Berat,Berat,Agak Berat,Tidak Berat',
         ]);
 
         try {
@@ -211,6 +245,7 @@ class FormPerubahanITController extends Controller
                 'updated_at' => now(),
             ];
 
+            // Update Berkas Tanda Tangan
             if ($request->hasFile('tanda_tangan_file')) {
                 if ($currentData->tanda_tangan_file) {
                     Storage::disk('public')->delete($currentData->tanda_tangan_file);
@@ -218,11 +253,22 @@ class FormPerubahanITController extends Controller
                 $updateData['tanda_tangan_file'] = $request->file('tanda_tangan_file')->store('tanda_tangan', 'public');
             }
 
+            // Update Banyak Berkas Dokumen Pendukung Sekaligus
             if ($request->hasFile('dokumen_pendukung_file')) {
-                if ($currentData->dokumen_pendukung_file) {
-                    Storage::disk('public')->delete($currentData->dokumen_pendukung_file);
+                // Hapus berkas-berkas dokumen pendukung lama yang tercatat sebelumnya
+                $oldFiles = json_decode($currentData->dokumen_pendukung_file ?? '[]');
+                foreach ($oldFiles as $oldPath) {
+                    if (Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
                 }
-                $updateData['dokumen_pendukung_file'] = $request->file('dokumen_pendukung_file')->store('dokumen_pendukung', 'public');
+
+                // Masukkan berkas kumpulan dokumen baru
+                $newPaths = [];
+                foreach ($request->file('dokumen_pendukung_file') as $file) {
+                    $newPaths[] = $file->store('dokumen_pendukung', 'public');
+                }
+                $updateData['dokumen_pendukung_file'] = json_encode($newPaths);
             }
 
             DB::table('form_perubahan_it')->where('id', $id)->update($updateData);
@@ -264,7 +310,7 @@ class FormPerubahanITController extends Controller
     }
 
     // ==========================================
-    // 7. DELETE: Hapus Data Pengajuan
+    // 7. DELETE: Hapus Data Pengajuan beserta Seluruh File Fisik
     // ==========================================
     public function destroy($id)
     {
@@ -275,16 +321,22 @@ class FormPerubahanITController extends Controller
                 return response()->json(['message' => 'Data tidak ditemukan.'], 404);
             }
 
+            // Hapus file tanda tangan dari storage
             if ($data->tanda_tangan_file) {
                 Storage::disk('public')->delete($data->tanda_tangan_file);
             }
-            if ($data->dokumen_pendukung_file) {
-                Storage::disk('public')->delete($data->dokumen_pendukung_file);
+            
+            // Looping untuk menghapus semua berkas dokumen pendukung jamak dari storage
+            $dokumenFiles = json_decode($data->dokumen_pendukung_file ?? '[]');
+            foreach ($dokumenFiles as $filePath) {
+                if (Storage::disk('public')->exists($filePath)) {
+                    Storage::disk('public')->delete($filePath);
+                }
             }
 
             DB::table('form_perubahan_it')->where('id', $id)->delete();
 
-            return response()->json(['message' => 'Data formulir beserta file terkait berhasil dihapus!'], 200);
+            return response()->json(['message' => 'Data formulir beserta seluruh berkas berhasil dihapus!'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Gagal menghapus data: ' . $e->getMessage()], 500);
         }
