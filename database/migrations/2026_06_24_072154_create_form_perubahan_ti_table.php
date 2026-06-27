@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('unit_kerja')->nullable();
             $table->foreignId('perangkat_daerah_id')->nullable()->constrained('general_opd')->nullOnDelete(); // Relasi ke GeneralOpd
             $table->string('nomor_kontak');
+            $table->string('email_dinas');
             
             // Informasi Data (Disimpan dalam bentuk JSON array karena checkbox bisa pilih lebih dari 1)
             $table->json('jenis_perubahan')->nullable(); 

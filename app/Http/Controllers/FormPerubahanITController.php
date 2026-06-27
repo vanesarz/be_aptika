@@ -53,13 +53,13 @@ class FormPerubahanITController extends Controller
         // Validasi input text, file attachment, serta checkbox persetujuan wajib
         $request->validate([
             'pemohon' => 'required|string',
+            'email_dinas' => 'required|email:rfc,dns', // Memastikan format email dinas valid
             'perangkat_daerah_id' => 'required|exists:general_opd,id',
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
-            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240', // Maksimal 10MB sesuai form frontend
-            'dokumen_pendukung_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240', // Maksimal 10MB
+            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240', 
+            'dokumen_pendukung_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:10240', 
             
-            // Aturan 'accepted' memaksa kolom ini bernilai true/1/yes agar lolos validasi
             'setuju_data_benar' => 'required|accepted',
             'setuju_atasan' => 'required|accepted',
         ]);
@@ -85,8 +85,9 @@ class FormPerubahanITController extends Controller
 
             $id = DB::table('form_perubahan_it')->insertGetId([
                 'no_rfc' => $noRfc,
-                'status' => 'menunggu', // Default status awal saat pengajuan baru dibuat
+                'status' => 'menunggu',
                 'pemohon' => $request->pemohon,
+                'email_dinas' => $request->email_dinas,
                 'unit_kerja' => $request->unit_kerja,
                 'perangkat_daerah_id' => $request->perangkat_daerah_id,
                 'nomor_kontak' => $request->nomor_kontak,
@@ -110,7 +111,6 @@ class FormPerubahanITController extends Controller
                 'tanda_tangan_file' => $ttdPath,
                 'dokumen_pendukung_file' => $dokumenPath,
                 
-                // Menyimpan status persetujuan ke database (pasti bernilai 1 karena lolos validasi 'accepted')
                 'setuju_data_benar' => 1,
                 'setuju_atasan' => 1,
                 
@@ -133,12 +133,16 @@ class FormPerubahanITController extends Controller
     }
 
     // ==========================================
-    // 4. READ: Ambil Detail Berdasarkan ID
+    // 4. READ: Ambil Detail Berdasarkan ID (Sudah Di-JOIN)
     // ==========================================
     public function show($id)
     {
         try {
-            $data = DB::table('form_perubahan_it')->where('id', $id)->first();
+            $data = DB::table('form_perubahan_it')
+                ->leftJoin('general_opd', 'form_perubahan_it.perangkat_daerah_id', '=', 'general_opd.id')
+                ->select('form_perubahan_it.*', 'general_opd.name as nama_perangkat_daerah')
+                ->where('form_perubahan_it.id', $id)
+                ->first();
 
             if (!$data) {
                 return response()->json(['message' => 'Data tidak ditemukan.'], 404);
@@ -166,6 +170,7 @@ class FormPerubahanITController extends Controller
     {
         $request->validate([
             'pemohon' => 'required|string',
+            'email_dinas' => 'required|email:rfc,dns',
             'perangkat_daerah_id' => 'required|exists:general_opd,id',
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
@@ -182,6 +187,7 @@ class FormPerubahanITController extends Controller
 
             $updateData = [
                 'pemohon' => $request->pemohon,
+                'email_dinas' => $request->email_dinas,
                 'unit_kerja' => $request->unit_kerja,
                 'perangkat_daerah_id' => $request->perangkat_daerah_id,
                 'nomor_kontak' => $request->nomor_kontak,
@@ -205,7 +211,6 @@ class FormPerubahanITController extends Controller
                 'updated_at' => now(),
             ];
 
-            // Jika ada file tanda tangan baru, hapus berkas lama dan simpan yang baru
             if ($request->hasFile('tanda_tangan_file')) {
                 if ($currentData->tanda_tangan_file) {
                     Storage::disk('public')->delete($currentData->tanda_tangan_file);
@@ -213,7 +218,6 @@ class FormPerubahanITController extends Controller
                 $updateData['tanda_tangan_file'] = $request->file('tanda_tangan_file')->store('tanda_tangan', 'public');
             }
 
-            // Jika ada file dokumen pendukung baru, hapus berkas lama dan simpan yang baru
             if ($request->hasFile('dokumen_pendukung_file')) {
                 if ($currentData->dokumen_pendukung_file) {
                     Storage::disk('public')->delete($currentData->dokumen_pendukung_file);
@@ -271,7 +275,6 @@ class FormPerubahanITController extends Controller
                 return response()->json(['message' => 'Data tidak ditemukan.'], 404);
             }
 
-            // Hapus file fisik dari storage sebelum baris data di database dihapus
             if ($data->tanda_tangan_file) {
                 Storage::disk('public')->delete($data->tanda_tangan_file);
             }
@@ -293,7 +296,6 @@ class FormPerubahanITController extends Controller
     public function exportPdf($id)
     {
         try {
-            // Ambil data spesifik beserta nama Perangkat Daerah-nya
             $data = DB::table('form_perubahan_it')
                 ->leftJoin('general_opd', 'form_perubahan_it.perangkat_daerah_id', '=', 'general_opd.id')
                 ->select('form_perubahan_it.*', 'general_opd.name as nama_perangkat_daerah')
@@ -304,12 +306,10 @@ class FormPerubahanITController extends Controller
                 return response()->json(['message' => 'Data tidak ditemukan untuk dicetak.'], 404);
             }
 
-            // Decode string JSON dari database menjadi array PHP agar bisa dicek oleh Blade templating
             $jenis_perubahan = json_decode($data->jenis_perubahan ?? '[]', true);
             $jenis_permohonan = json_decode($data->jenis_permohonan ?? '[]', true);
             $kriteria_risiko = json_decode($data->kriteria_risiko ?? '[]', true);
 
-            // Inisialisasi Engine DomPDF dengan view template kita
             $pdf = Pdf::loadView('pdf.form_perubahan_it', compact(
                 'data', 
                 'jenis_perubahan', 
@@ -317,10 +317,7 @@ class FormPerubahanITController extends Controller
                 'kriteria_risiko'
             ));
 
-            // Set ukuran kertas menjadi A4 dengan orientasi Portrait (Tegak)
             $pdf->setPaper('a4', 'portrait');
-
-            // Menggunakan stream agar dapat di-preview secara live di tab browser baru
             return $pdf->stream('Form_Perubahan_IT_' . $data->no_rfc . '.pdf');
 
         } catch (\Exception $e) {
