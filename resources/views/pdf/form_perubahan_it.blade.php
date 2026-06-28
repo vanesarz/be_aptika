@@ -129,7 +129,11 @@
     <table class="header-table">
         <tr>
             <td class="header-logo">
-                <span style="font-size: 10px; color: #666; font-weight: bold;">LOGO</span>
+                @if(file_exists(storage_path('app/public/logo-jabar.svg')))
+                    <img src="{{ storage_path('app/public/logo-jabar.svg') }}" style="height: 100px; width: auto;" alt="Logo Instansi">
+                @else
+                    <span style="font-size: 10px; color: #666; font-weight: bold;">LOGO</span>
+                @endif
             </td>
             
             <td class="header-title">
