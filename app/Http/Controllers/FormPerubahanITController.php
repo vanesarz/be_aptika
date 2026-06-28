@@ -56,18 +56,20 @@ class FormPerubahanITController extends Controller
     // ==========================================
     public function store(Request $request)
     {
-        // Validasi input text, multi-file attachment opsional, pakta integritas, serta kriteria risiko
+        // Validasi input text, berkas multi-file, pakta integritas, serta kriteria risiko
         $request->validate([
             'pemohon' => 'required|string',
             'email_dinas' => 'required|email:rfc,dns', // Memastikan format email dinas valid
             'perangkat_daerah_id' => 'required|exists:general_opd,id',
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
-            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240', // Maksimal 10MB
             
-            // Konfigurasi Validasi Multi-File Dokumen Pendukung (Maksimal 5 Berkas, Boleh Kosong)
+            // Tanda tangan diubah ke string karena menerima bentuk Base64 dari Signature Canvas
+            'tanda_tangan_file' => 'nullable|string', 
+            
+            // Validasi Multi-File Dokumen Pendukung (Maksimal 5 Berkas, Boleh Kosong)
             'dokumen_pendukung_file' => 'nullable|array|max:5', 
-            'dokumen_pendukung_file.*' => 'file|mimes:jpeg,jpg,png,pdf|max:10240', // Validasi tiap komponen berkas
+            'dokumen_pendukung_file.*' => 'file|mimes:jpeg,jpg,png,pdf|max:10240', // Maksimal 10MB per berkas
             
             // Validasi kriteria_risiko dikunci ketat oleh Backend
             'kriteria_risiko' => 'nullable|array',
@@ -85,10 +87,23 @@ class FormPerubahanITController extends Controller
                 return 'RFC-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
             });
 
-            // Handling file upload Tanda Tangan (Single File)
+            // LOGIKA DIUBAH: Handling upload Tanda Tangan Canvas (Base64)
             $ttdPath = null;
-            if ($request->hasFile('tanda_tangan_file')) {
-                $ttdPath = $request->file('tanda_tangan_file')->store('tanda_tangan', 'public');
+            if ($request->filled('tanda_tangan_file')) {
+                $base64Image = $request->tanda_tangan_file;
+
+                // Ekstrak metadata header Base64 (Mendukung data:image/png;base64, ...)
+                if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+                    $ext = strtolower($type[1]); // Mengambil ekstensi file (png/jpeg)
+                    $base64Image = substr($base64Image, strpos($base64Image, ',') + 1); // Buang string metadata header
+                    $decodedImage = base64_decode($base64Image); // Decode string teks menjadi file biner asli
+
+                    if ($decodedImage !== false) {
+                        $fileName = 'tanda_tangan/' . uniqid() . '.' . $ext;
+                        Storage::disk('public')->put($fileName, $decodedImage); // Simpan ke folder public storage
+                        $ttdPath = $fileName;
+                    }
+                }
             }
 
             // Handling Multi-File Upload Dokumen Pendukung
@@ -126,17 +141,13 @@ class FormPerubahanITController extends Controller
                 'waktu_perubahan' => $request->waktu_perubahan,
                 'tanggal_permohonan' => $request->tanggal_permohonan,
                 'tanda_tangan_file' => $ttdPath,
-                
-                // Mengonversi array path menjadi format teks JSON sebelum masuk DB
                 'dokumen_pendukung_file' => json_encode($dokumenPaths),
-                
                 'setuju_data_benar' => 1,
                 'setuju_atasan' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-            // Transformasi path ke bentuk URL publik penuh untuk respon data
             $dokumenUrls = array_map(function($path) {
                 return asset('storage/' . $path);
             }, $dokumenPaths);
@@ -161,7 +172,6 @@ class FormPerubahanITController extends Controller
     public function show($id)
     {
         try {
-            // Mengambil detail data dengan leftJoin ke tabel general_opd agar nama instansi terbawa ke frontend
             $data = DB::table('form_perubahan_it')
                 ->leftJoin('general_opd', 'form_perubahan_it.perangkat_daerah_id', '=', 'general_opd.id')
                 ->select('form_perubahan_it.*', 'general_opd.name as nama_perangkat_daerah')
@@ -177,7 +187,7 @@ class FormPerubahanITController extends Controller
             $data->jenis_permohonan = json_decode($data->jenis_permohonan ?? '[]');
             $data->kriteria_risiko = json_decode($data->kriteria_risiko ?? '[]');
             
-            // Tambahkan URL akses penuh berkas tunggal maupun jamak untuk Frontend
+            // Tambahkan URL akses penuh berkas ke objek response
             $data->tanda_tangan_url = $data->tanda_tangan_file ? asset('storage/' . $data->tanda_tangan_file) : null;
             
             $dokumenFiles = json_decode($data->dokumen_pendukung_file ?? '[]');
@@ -202,9 +212,10 @@ class FormPerubahanITController extends Controller
             'perangkat_daerah_id' => 'required|exists:general_opd,id',
             'nomor_kontak' => 'required|string',
             'tanggal_permohonan' => 'required|date',
-            'tanda_tangan_file' => 'nullable|image|mimes:jpeg,jpg,png|max:10240',
             
-            // Validasi multi-file pada update data
+            // Pada update data, tanda tangan juga diubah validasinya menjadi string base64
+            'tanda_tangan_file' => 'nullable|string',
+            
             'dokumen_pendukung_file' => 'nullable|array|max:5',
             'dokumen_pendukung_file.*' => 'file|mimes:jpeg,jpg,png,pdf|max:10240',
             
@@ -245,17 +256,30 @@ class FormPerubahanITController extends Controller
                 'updated_at' => now(),
             ];
 
-            // Update Berkas Tanda Tangan
-            if ($request->hasFile('tanda_tangan_file')) {
-                if ($currentData->tanda_tangan_file) {
-                    Storage::disk('public')->delete($currentData->tanda_tangan_file);
+            // LOGIKA DIUBAH: Update Berkas Tanda Tangan Canvas (Base64)
+            if ($request->filled('tanda_tangan_file')) {
+                $base64Image = $request->tanda_tangan_file;
+
+                if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $type)) {
+                    $ext = strtolower($type[1]);
+                    $base64Image = substr($base64Image, strpos($base64Image, ',') + 1);
+                    $decodedImage = base64_decode($base64Image);
+
+                    if ($decodedImage !== false) {
+                        // Hapus file tanda tangan fisik yang lama dari storage jika tercatat sebelumnya
+                        if ($currentData->tanda_tangan_file && Storage::disk('public')->exists($currentData->tanda_tangan_file)) {
+                            Storage::disk('public')->delete($currentData->tanda_tangan_file);
+                        }
+
+                        $fileName = 'tanda_tangan/' . uniqid() . '.' . $ext;
+                        Storage::disk('public')->put($fileName, $decodedImage);
+                        $updateData['tanda_tangan_file'] = $fileName;
+                    }
                 }
-                $updateData['tanda_tangan_file'] = $request->file('tanda_tangan_file')->store('tanda_tangan', 'public');
             }
 
             // Update Banyak Berkas Dokumen Pendukung Sekaligus
             if ($request->hasFile('dokumen_pendukung_file')) {
-                // Hapus berkas-berkas dokumen pendukung lama yang tercatat sebelumnya
                 $oldFiles = json_decode($currentData->dokumen_pendukung_file ?? '[]');
                 foreach ($oldFiles as $oldPath) {
                     if (Storage::disk('public')->exists($oldPath)) {
@@ -263,7 +287,6 @@ class FormPerubahanITController extends Controller
                     }
                 }
 
-                // Masukkan berkas kumpulan dokumen baru
                 $newPaths = [];
                 foreach ($request->file('dokumen_pendukung_file') as $file) {
                     $newPaths[] = $file->store('dokumen_pendukung', 'public');
@@ -326,7 +349,7 @@ class FormPerubahanITController extends Controller
                 Storage::disk('public')->delete($data->tanda_tangan_file);
             }
             
-            // Looping untuk menghapus semua berkas dokumen pendukung jamak dari storage
+            // Hapus semua berkas dokumen pendukung jamak dari storage
             $dokumenFiles = json_decode($data->dokumen_pendukung_file ?? '[]');
             foreach ($dokumenFiles as $filePath) {
                 if (Storage::disk('public')->exists($filePath)) {

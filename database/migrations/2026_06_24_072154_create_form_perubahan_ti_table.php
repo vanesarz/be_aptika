@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -36,7 +37,7 @@ return new class extends Migration
             $table->text('risiko_tidak_dilakukan')->nullable();
             
             // Kriteria & Keterangan
-            $table->json('kriteria_risiko')->nullable(); // JSON Array
+            $table->json('kriteria_risiko')->nullable(); // JSON Array kriteria risiko
             $table->text('keterangan')->nullable();
             $table->text('solusi_diharapkan')->nullable();
             $table->text('risiko_perubahan')->nullable();
@@ -45,7 +46,7 @@ return new class extends Migration
             // Informasi Tambahan
             $table->string('biaya_perubahan')->nullable();
             $table->string('waktu_perubahan')->nullable();
-            $table->string('lampiran')->nullable(); // Bisa string path jika nanti upload file
+            $table->string('lampiran')->nullable();
             $table->date('tanggal_permohonan');
 
             // Tanda Tangan & Dokumen Pendukung
@@ -62,6 +63,13 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Menghapus foreign key constraint terlebih dahulu sebelum drop table (Opsional untuk keamanan database)
+        Schema::table('form_perubahan_it', function (Blueprint $table) {
+            if (DB::getDriverName() !== 'sqlite') {
+                $table->dropForeign(['perangkat_daerah_id']);
+            }
+        });
+
         Schema::dropIfExists('form_perubahan_it');
     }
 };
