@@ -55,8 +55,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('users', \App\Http\Controllers\Admin\UserController::class);
     });
 
-    Route::get('/spd/stats', [SpdProposalController::class, 'stats']);
-    Route::apiResource('/spd', SpdProposalController::class);
+    Route::get('/spd-proposal/stats', [SpdProposalController::class, 'stats']);
+    Route::apiResource('/spd-proposal', SpdProposalController::class);
 
     Route::prefix('smartjabar')->group(function () {
         Route::get('/export', [LaporanController::class, 'smartjabarExport']);
