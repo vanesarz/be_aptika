@@ -25,6 +25,9 @@ class Spd extends Model
         'durasi',
         'pengikut',
         'anggaran',
+        'uang_harian',
+        'uang_transport',
+        'uang_hotel',
         'status',
     ];
 
