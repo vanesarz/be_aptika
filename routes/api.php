@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\SpdProposalController;
 
 use App\Http\Controllers\Rekayasa\ApplicationReplicationController;
 use App\Http\Controllers\Rekayasa\MentoringPerformanceController;
@@ -52,6 +53,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::middleware(['role:admin'])->prefix('admin')->group(function () {
         Route::apiResource('users', \App\Http\Controllers\Admin\UserController::class);
     });
+
+    Route::get('/spd/stats', [SpdProposalController::class, 'stats']);
+    Route::apiResource('/spd', SpdProposalController::class);
 
     Route::prefix('smartjabar')->group(function () {
         Route::get('/export', [LaporanController::class, 'smartjabarExport']);
