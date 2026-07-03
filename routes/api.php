@@ -6,6 +6,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
+
+use App\Http\Controllers\SPD\DetailPerjalananController;
+use App\Http\Controllers\SPD\PegawaiController;
+use App\Http\Controllers\SPD\RekeningController;
+use App\Http\Controllers\SPD\SpdPesertaController;
+
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\SpdProposalController;
 
@@ -55,8 +61,20 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('users', \App\Http\Controllers\Admin\UserController::class);
     });
 
-    Route::get('/spd-proposal/stats', [SpdProposalController::class, 'stats']);
-    Route::apiResource('/spd-proposal', SpdProposalController::class);
+    Route::prefix('spd')->group(function () {
+        Route::apiResource('detail-perjalanan', DetailPerjalananController::class);
+        Route::patch(
+            'detail-perjalanan/{id}/status',
+            [DetailPerjalananController::class, 'updateStatus']
+        );
+    
+        Route::apiResource('rekening', RekeningController::class);
+        Route::apiResource('pegawai', PegawaiController::class);
+        Route::apiResource('spd-peserta', SpdPesertaController::class);
+});
+
+    Route::get('/spd/stats', [SpdProposalController::class, 'stats']);
+    Route::apiResource('/spd', SpdProposalController::class);
 
     Route::prefix('smartjabar')->group(function () {
         Route::get('/export', [LaporanController::class, 'smartjabarExport']);
