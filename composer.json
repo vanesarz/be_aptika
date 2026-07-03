@@ -77,9 +77,10 @@
     },
     "config": {
         "optimize-autoloader": true,
-        "preferred-install": "dist",
+        "preferred-install": "auto",
         "sort-packages": true,
         "platform-check": false,
+        "http2": false,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true

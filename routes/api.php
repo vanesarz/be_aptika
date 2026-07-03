@@ -30,6 +30,7 @@ use App\Http\Controllers\SmartJabar\JoinedAppController;
 use App\Http\Controllers\SmartJabar\UsageStatController;
 use App\Http\Controllers\SadaJabar\AppIntegrationController;
 use App\Http\Controllers\SadaJabar\EncryptionStatController;
+use App\Http\Controllers\SpdController;
 
 use App\Http\Controllers\Appman\AppVulnerabilityController;
 use App\Http\Controllers\Appman\DevelopmentTargetController;
@@ -90,6 +91,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/stats/{id}/edit', [UsageStatController::class, 'edit']);
         Route::put('/stats/{id}', [UsageStatController::class, 'update']);
         Route::delete('/stats/{id}', [UsageStatController::class, 'destroy']);
+    });
+
+    Route::prefix('spd')->group(function () {
+        Route::get('/', [SpdController::class, 'index']);
+        Route::get('/{id}', [SpdController::class, 'show']);
+        Route::post('/', [SpdController::class, 'store']);
+        Route::put('/{id}', [SpdController::class, 'update']);
+        Route::delete('/{id}', [SpdController::class, 'destroy']);
+        Route::post('/laporan', [SpdController::class, 'submitLaporan']);
     });
 
     Route::prefix('sadajabar')->group(function () {
