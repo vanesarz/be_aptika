@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             GeneralInstitutionCategorySeeder::class,
             DocumentTypeSeeder::class,
             RegencySeeder::class,
+            RekeningSeeder::class,
+            PegawaiSeeder::class,
         ]);
 
         // Seed Admin User

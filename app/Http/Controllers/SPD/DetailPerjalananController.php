@@ -66,9 +66,9 @@ class DetailPerjalananController extends Controller
             'tujuan' => 'required|string|max:255',
             'tanggal_berangkat' => 'required|date',
             'tanggal_kembali' => 'required|date|after_or_equal:tanggal_berangkat',
-            'uang_harian' => 'required|numeric|min:0',
-            'rekening_id' => 'required|exists:rekening,id',
-            'alat_angkutan' => 'required|string|max:100',
+            'uang_harian' => 'nullable|numeric|min:0',
+            'rekening_id' => 'nullable|exists:rekening,id',
+            'alat_angkutan' => 'nullable|string|max:100',
             'deskripsi' => 'nullable|string',
         ]);
 
@@ -77,6 +77,26 @@ class DetailPerjalananController extends Controller
                 $year = date('Y');
                 $sequence = DetailPerjalanan::where('travel_code', 'like', "PD-{$year}-%")->count() + 1;
                 $travelCode = sprintf('PD-%s-%04d', $year, $sequence);
+
+                // Ensure a default Rekening exists and assign it if not provided
+                if (!isset($validated['rekening_id']) || empty($validated['rekening_id'])) {
+                    $rekening = \App\Models\Rekening::first();
+                    if (!$rekening) {
+                        $rekening = \App\Models\Rekening::create([
+                            'kode_rekening' => '5.1.02.04.01.0001',
+                            'nomor_rekening' => '123-456-789',
+                            'nama_rekening' => 'Belanja Perjalanan Dinas Biasa',
+                        ]);
+                    }
+                    $validated['rekening_id'] = $rekening->id;
+                }
+
+                if (!isset($validated['uang_harian'])) {
+                    $validated['uang_harian'] = 0;
+                }
+                if (!isset($validated['alat_angkutan'])) {
+                    $validated['alat_angkutan'] = 'Kendaraan Dinas';
+                }
 
                 return DetailPerjalanan::create(array_merge($validated, [
                     'travel_code' => $travelCode,
@@ -106,9 +126,9 @@ class DetailPerjalananController extends Controller
             'tujuan' => 'required|string|max:255',
             'tanggal_berangkat' => 'required|date',
             'tanggal_kembali' => 'required|date|after_or_equal:tanggal_berangkat',
-            'uang_harian' => 'required|numeric|min:0',
-            'rekening_id' => 'required|exists:rekening,id',
-            'alat_angkutan' => 'required|string|max:100',
+            'uang_harian' => 'nullable|numeric|min:0',
+            'rekening_id' => 'nullable|exists:rekening,id',
+            'alat_angkutan' => 'nullable|string|max:100',
             'deskripsi' => 'nullable|string',
             'status' => 'nullable|in:belum_selesai,selesai',
         ]);
