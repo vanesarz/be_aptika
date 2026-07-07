@@ -44,6 +44,29 @@ use App\Http\Controllers\Appman\TeamSupportFacilityController;
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 
+Route::get('/debug-db', function () {
+    try {
+        $pdo = \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $dbName = \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
+        $tables = \Illuminate\Support\Facades\Schema::getTableListing('detail_perjalanan');
+        $allTables = \Illuminate\Support\Facades\DB::select('SHOW TABLES');
+        $migrations = \Illuminate\Support\Facades\DB::table('migrations')->get();
+        return response()->json([
+            'status' => 'success',
+            'db_name' => $dbName,
+            'tables_in_detail_perjalanan' => $tables,
+            'all_tables' => $allTables,
+            'migrations' => $migrations
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
