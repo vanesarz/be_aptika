@@ -33,15 +33,19 @@ class PegawaiController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:255',
-            'nip' => 'required|string|max:18|unique:pegawai,nip',
-            'pangkat' => 'required|string|max:255',
-            'jabatan' => 'required|string|max:255',
-            'role' => 'required|in:kabid,staff',
+            'nama'          => 'required|string|max:255',
+            'nip'           => 'required|string|max:18|unique:pegawai,nip',
+            'pangkat'       => 'required|string|max:255',
+            'jabatan'       => 'required|string|max:255',
+            'role'          => 'required|in:kabid,staff',
+            'tanggal_lahir' => 'nullable|date',
         ]);
 
         try {
             $item = DB::transaction(function () use ($validated) {
+                if (empty($validated['tanggal_lahir'])) {
+                    $validated['tanggal_lahir'] = '1990-01-01';
+                }
                 return Pegawai::create($validated);
             });
 

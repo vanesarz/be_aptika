@@ -16,6 +16,7 @@ class Pegawai extends Model
         'pangkat',
         'jabatan',
         'role',
+        'tanggal_lahir',
     ];
 
     public function spdPeserta(): HasMany
