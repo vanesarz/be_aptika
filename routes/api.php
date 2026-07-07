@@ -44,59 +44,6 @@ use App\Http\Controllers\Appman\TeamSupportFacilityController;
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 
-Route::get('/debug-db', function () {
-    try {
-        $dbName = \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
-        
-        $dryRunError = null;
-        try {
-            \Illuminate\Support\Facades\DB::transaction(function () {
-                $year = date('Y');
-                $sequence = \App\Models\DetailPerjalanan::where('travel_code', 'like', "PD-{$year}-%")->count() + 1;
-                $travelCode = sprintf('PD-%s-%04d', $year, $sequence);
-
-                $rekening = \App\Models\Rekening::first();
-                if (!$rekening) {
-                    $rekening = \App\Models\Rekening::create([
-                        'kode_rekening' => '5.1.02.04.01.0001',
-                        'nomor_rekening' => '123-456-789',
-                        'nama_rekening' => 'Belanja Perjalanan Dinas Biasa',
-                    ]);
-                }
-
-                \App\Models\DetailPerjalanan::create([
-                    'travel_code' => $travelCode,
-                    'kegiatan' => 'Debug Kegiatan',
-                    'sub_kegiatan' => 'Debug Sub Kegiatan',
-                    'tujuan' => 'Debug Tujuan',
-                    'tanggal_berangkat' => '2026-07-07',
-                    'tanggal_kembali' => '2026-07-08',
-                    'uang_harian' => 50000,
-                    'rekening_id' => $rekening->id,
-                    'alat_angkutan' => 'Dinas',
-                    'status' => 'belum_selesai',
-                ]);
-                throw new \Exception('Insert dry-run succeeded, transaction rolled back.');
-            });
-        } catch (\Exception $ex) {
-            $dryRunError = $ex->getMessage();
-        }
-
-        $allTables = \Illuminate\Support\Facades\DB::select('SHOW TABLES');
-        return response()->json([
-            'status' => 'success',
-            'db_name' => $dbName,
-            'dry_run_error' => $dryRunError,
-            'all_tables' => $allTables,
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-});
 
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 

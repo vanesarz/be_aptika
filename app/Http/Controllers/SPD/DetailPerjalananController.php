@@ -75,7 +75,14 @@ class DetailPerjalananController extends Controller
         try {
             $item = DB::transaction(function () use ($validated) {
                 $year = date('Y');
-                $sequence = DetailPerjalanan::where('travel_code', 'like', "PD-{$year}-%")->count() + 1;
+                $lastTravel = DetailPerjalanan::where('travel_code', 'like', "PD-{$year}-%")
+                    ->orderByRaw('CAST(SUBSTRING_INDEX(travel_code, "-", -1) AS UNSIGNED) DESC')
+                    ->first();
+                $sequence = 1;
+                if ($lastTravel) {
+                    $parts = explode('-', $lastTravel->travel_code);
+                    $sequence = (int)end($parts) + 1;
+                }
                 $travelCode = sprintf('PD-%s-%04d', $year, $sequence);
 
                 // Ensure a default Rekening exists and assign it if not provided
