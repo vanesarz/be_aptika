@@ -31,4 +31,40 @@ class User extends Authenticatable
             'is_active' => 'integer',
         ];
     }
+
+    public function boardsCreated()
+    {
+        return $this->hasMany(Board::class, 'created_by');
+    }
+
+    public function boardMemberships()
+    {
+        return $this->hasMany(BoardMember::class);
+    }
+
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
+
+    public function createdTasks()
+    {
+        return $this->hasMany(Task::class, 'created_by');
+    }
+
+    public function taskComments()
+    {
+        return $this->hasMany(TaskComment::class);
+    }
+
+    public function uploadedAttachments()
+    {
+        return $this->hasMany(TaskAttachment::class, 'uploaded_by');
+    }
+
+    public function taskActivities()
+    {
+        return $this->hasMany(TaskActivity::class);
+    }
+
 }
