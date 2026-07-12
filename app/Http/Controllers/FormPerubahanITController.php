@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\GeneralOpd;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\TicketHistory;
+use App\Models\FormPerubahanIt;
 
 class FormPerubahanITController extends Controller
 {
@@ -461,4 +462,28 @@ public function ticket($rfc)
             return response()->json(['error' => 'Gagal membuat file PDF: ' . $e->getMessage()], 500);
         }
     }
+public function assign(Request $request, $id)
+{
+    $request->validate([
+        'assigned_to' => 'required|string',
+    ]);
+
+    $ticket = FormPerubahanIt::findOrFail($id);
+
+    $ticket->assigned_to = $request->assigned_to;
+    $ticket->status = 'pengerjaan';
+    $ticket->save();
+
+    TicketHistory::create([
+        'form_perubahan_it_id' => $ticket->id,
+        'status' => 'pengerjaan',
+        'keterangan' => 'Ditugaskan kepada '.$request->assigned_to,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Agen berhasil ditugaskan',
+        'data' => $ticket
+    ]);
+}
 }

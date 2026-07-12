@@ -49,6 +49,10 @@ Route::patch('/form-perubahan-it/{id}/status', [FormPerubahanITController::class
 Route::get( '/form-perubahan-it/ticket/{rfc}', [FormPerubahanITController::class, 'ticket']
 
 );
+Route::patch(
+    '/form-perubahan-it/{id}/assign',
+    [FormPerubahanITController::class, 'assign']
+);
 
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);

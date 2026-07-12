@@ -4,8 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class FormPerubahanIt extends Model
+class FormPerubahanIT extends Model
 {
-    // Cukup biarkan kode bawaan Anda sebelumnya (seperti $table, $fillable, dll)
-    // HAPUS fungsi perangkatDaerah() dan HAPUS "use App\Models\PerangkatDaerah;"
+    protected $table = 'form_perubahan_it';
 }
