@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Models\GeneralOpd;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\TicketHistory;
 
 class FormPerubahanITController extends Controller
 {
@@ -147,6 +148,12 @@ class FormPerubahanITController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            TicketHistory::create([
+    'form_perubahan_it_id' => $id,
+    'status' => 'menunggu',
+    'keterangan' =>
+        'Permohonan berhasil dikirim dan menunggu verifikasi admin.'
+]);
 
             $dokumenUrls = array_map(function($path) {
                 return asset('storage/' . $path);
@@ -200,10 +207,58 @@ class FormPerubahanITController extends Controller
             return response()->json(['error' => 'Gagal mengambil detail data: ' . $e->getMessage()], 500);
         }
     }
+    
 
+public function ticket($rfc)
+    {
+        try {
+            $ticket = DB::table('form_perubahan_it')
+                ->leftJoin('general_opd', 'form_perubahan_it.perangkat_daerah_id', '=', 'general_opd.id')
+                ->select('form_perubahan_it.*', 'general_opd.name as nama_perangkat_daerah')
+                ->where('form_perubahan_it.no_rfc', $rfc)
+                ->first();
+
+            if (!$ticket) {
+                return response()->json(['message' => 'Ticket tidak ditemukan.'], 404);
+            }
+
+            // Decode array
+            $ticket->jenis_perubahan = json_decode($ticket->jenis_perubahan ?? '[]');
+            $ticket->jenis_permohonan = json_decode($ticket->jenis_permohonan ?? '[]');
+            $ticket->kriteria_risiko = json_decode($ticket->kriteria_risiko ?? '[]');
+
+            // ==========================================
+            // TAMBAHKAN KODE INI UNTUK MEMPROSES DOKUMEN
+            // ==========================================
+            $ticket->tanda_tangan_url = $ticket->tanda_tangan_file ? asset('storage/' . $ticket->tanda_tangan_file) : null;
+            
+            $dokumenFiles = json_decode($ticket->dokumen_pendukung_file ?? '[]');
+            // Pastikan array valid sebelum di map
+            if (is_array($dokumenFiles)) {
+                $ticket->dokumen_pendukung_urls = array_map(function($path) {
+                    return asset('storage/' . $path);
+                }, $dokumenFiles);
+            } else {
+                $ticket->dokumen_pendukung_urls = [];
+            }
+            // ==========================================
+
+            $histories = TicketHistory::where('form_perubahan_it_id', $ticket->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $ticket->histories = $histories;
+
+            return response()->json($ticket, 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
     // ==========================================
     // 5. UPDATE: Perbarui Data Pengajuan
     // ==========================================
+
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -308,7 +363,7 @@ class FormPerubahanITController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:menunggu,disetujui,ditolak'
+            'status' => 'required|in:menunggu,disetujui,ditolak,pengerjaan,selesai',
         ]);
 
         try {
@@ -322,6 +377,13 @@ class FormPerubahanITController extends Controller
                 'status' => $request->status,
                 'updated_at' => now()
             ]);
+            TicketHistory::create([
+    'form_perubahan_it_id' => $id,
+    'status' => $request->status,
+    'keterangan' =>
+        'Status diperbarui menjadi ' .
+        $request->status
+]);
 
             return response()->json([
                 'message' => 'Status formulir berhasil diperbarui menjadi ' . $request->status

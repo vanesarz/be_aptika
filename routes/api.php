@@ -46,6 +46,9 @@ Route::post('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'updat
 Route::delete('/form-perubahan-it/{id}', [FormPerubahanITController::class, 'destroy']); // Delete Data
 Route::get('/form-perubahan-it/{id}/pdf', [FormPerubahanITController::class, 'exportPdf']); // Export PDF
 Route::patch('/form-perubahan-it/{id}/status', [FormPerubahanITController::class, 'updateStatus']); // Update Status (menunggu, disetujui, ditolak)
+Route::get( '/form-perubahan-it/ticket/{rfc}', [FormPerubahanITController::class, 'ticket']
+
+);
 
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
