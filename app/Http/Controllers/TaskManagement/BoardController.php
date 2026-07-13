@@ -29,13 +29,17 @@ class BoardController extends Controller
 
             $userId = Auth::id();
 
+            $isAdmin = Auth::user()->role === 'admin';
+
             $boards = Board::query()
-                ->where(function ($query) use ($userId) {
-                    $query->where('created_by', $userId)
-                        ->orWhere('visibility', 'public')
-                        ->orWhereHas('members', function ($subQuery) use ($userId) {
-                            $subQuery->where('user_id', $userId);
-                        });
+                ->when(!$isAdmin, function ($query) use ($userId) {
+                    $query->where(function ($q) use ($userId) {
+                        $q->where('created_by', $userId)
+                            ->orWhere('visibility', 'public')
+                            ->orWhereHas('members', function ($subQuery) use ($userId) {
+                                $subQuery->where('user_id', $userId);
+                            });
+                    });
                 })
                 ->with([
                     'pm',
@@ -178,7 +182,8 @@ class BoardController extends Controller
         try {
             $board = Board::findOrFail($id);
 
-            if ((int) $board->created_by !== Auth::id()) {
+            $isAdmin = Auth::user()->role === 'admin';
+            if ((int) $board->created_by !== Auth::id() && !$isAdmin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berwenang mengubah board ini.',
@@ -235,7 +240,8 @@ class BoardController extends Controller
         try {
             $board = Board::findOrFail($id);
 
-            if ((int) $board->created_by !== Auth::id()) {
+            $isAdmin = Auth::user()->role === 'admin';
+            if ((int) $board->created_by !== Auth::id() && !$isAdmin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berwenang menghapus board ini.',

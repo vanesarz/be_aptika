@@ -177,7 +177,8 @@ class BoardMemberController extends Controller
         try {
             $board = Board::findOrFail($boardId);
 
-            if ((int) $board->created_by !== Auth::id()) {
+            $isAdmin = Auth::user()->role === 'admin';
+            if ((int) $board->created_by !== Auth::id() && !$isAdmin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berwenang menyetujui permintaan join.',
@@ -235,7 +236,8 @@ class BoardMemberController extends Controller
         try {
             $board = Board::findOrFail($boardId);
 
-            if ((int) $board->created_by !== Auth::id()) {
+            $isAdmin = Auth::user()->role === 'admin';
+            if ((int) $board->created_by !== Auth::id() && !$isAdmin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berwenang menolak permintaan join.',

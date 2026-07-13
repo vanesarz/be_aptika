@@ -32,18 +32,22 @@ class TaskController extends Controller
             $boardId = $request->query('board_id');
             $userId = Auth::id();
 
+            $isAdmin = Auth::user()->role === 'admin';
+
             $tasks = Task::query()
                 ->with(['board', 'creator', 'assignee', 'comments', 'activities.user'])
                 ->when($boardId, function ($query) use ($boardId) {
                     $query->where('board_id', $boardId);
                 })
-                ->where(function ($query) use ($userId) {
-                    $query->whereHas('board', function ($subQuery) use ($userId) {
-                        $subQuery->where('created_by', $userId)
-                            ->orWhereHas('members', function ($memberQuery) use ($userId) {
-                                $memberQuery->where('user_id', $userId)
-                                    ->where('membership_status', 'accepted');
-                            });
+                ->when(!$isAdmin, function ($query) use ($userId) {
+                    $query->where(function ($q) use ($userId) {
+                        $q->whereHas('board', function ($subQuery) use ($userId) {
+                            $subQuery->where('created_by', $userId)
+                                ->orWhereHas('members', function ($memberQuery) use ($userId) {
+                                    $memberQuery->where('user_id', $userId)
+                                        ->where('membership_status', 'accepted');
+                                });
+                        });
                     });
                 })
                 ->orderByDesc('created_at')
@@ -129,7 +133,8 @@ class TaskController extends Controller
         try {
             $board = Board::findOrFail($validated['board_id']);
 
-            if ((int) $board->created_by !== Auth::id()) {
+            $isAdmin = Auth::user()->role === 'admin';
+            if ((int) $board->created_by !== Auth::id() && !$isAdmin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berwenang membuat task di board ini.',
@@ -223,7 +228,8 @@ class TaskController extends Controller
             $this->ensureBoardAccess($task->board_id);
 
             $isPm = (int) $task->board->created_by === Auth::id();
-            if (!$isPm && (int) $task->assigned_to !== Auth::id()) {
+            $isAdmin = Auth::user()->role === 'admin';
+            if (!$isPm && !$isAdmin && (int) $task->assigned_to !== Auth::id()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berwenang mengubah task ini.',
@@ -304,7 +310,8 @@ class TaskController extends Controller
             $task = Task::findOrFail($id);
             $this->ensureBoardAccess($task->board_id);
 
-            if ((int) $task->board->created_by !== Auth::id()) {
+            $isAdmin = Auth::user()->role === 'admin';
+            if ((int) $task->board->created_by !== Auth::id() && !$isAdmin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berwenang menghapus task ini.',
@@ -358,7 +365,8 @@ class TaskController extends Controller
             $task = Task::findOrFail($id);
             $this->ensureBoardAccess($task->board_id);
 
-            if ((int) $task->board->created_by !== Auth::id() && (int) $task->assigned_to !== Auth::id()) {
+            $isAdmin = Auth::user()->role === 'admin';
+            if ((int) $task->board->created_by !== Auth::id() && (int) $task->assigned_to !== Auth::id() && !$isAdmin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda tidak berwenang mengubah status task ini.',
@@ -474,7 +482,9 @@ class TaskController extends Controller
             ->where('membership_status', 'accepted')
             ->exists();
 
-        if ((int) $board->created_by !== $userId && !$isMember) {
+        $isAdmin = Auth::user()->role === 'admin';
+
+        if ((int) $board->created_by !== $userId && !$isMember && !$isAdmin) {
             throw new Exception('Anda tidak memiliki akses ke board ini.');
         }
     }
