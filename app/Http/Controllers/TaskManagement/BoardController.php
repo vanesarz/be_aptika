@@ -32,6 +32,7 @@ class BoardController extends Controller
             $boards = Board::query()
                 ->where(function ($query) use ($userId) {
                     $query->where('created_by', $userId)
+                        ->orWhere('visibility', 'public')
                         ->orWhereHas('members', function ($subQuery) use ($userId) {
                             $subQuery->where('user_id', $userId);
                         });
@@ -39,9 +40,6 @@ class BoardController extends Controller
                 ->with([
                     'pm',
                     'members.user',
-                    'members' => function ($q) use ($userId) {
-                        $q->where('user_id', $userId);
-                    }
                 ])
                 ->withCount('tasks')
                 ->orderByDesc('created_at')
