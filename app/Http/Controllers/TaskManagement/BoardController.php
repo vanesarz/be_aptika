@@ -5,6 +5,7 @@ namespace App\Http\Controllers\TaskManagement;
 use App\Http\Controllers\Controller;
 use App\Models\Board;
 use App\Models\BoardMember;
+use App\Services\TaskManagement\NotificationService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -13,6 +14,10 @@ use Illuminate\Support\Facades\DB;
 
 class BoardController extends Controller
 {
+    public function __construct(protected NotificationService $notificationService)
+    {
+    }
+
     /**
      * Menampilkan daftar board yang dapat diakses user saat ini.
      */
@@ -202,6 +207,18 @@ class BoardController extends Controller
                 ];
 
                 $board->update($payload);
+
+                if (isset($validated['status']) && $validated['status'] === 'archived') {
+                    $recipients = BoardMember::where('board_id', $board->id)
+                        ->where('membership_status', 'accepted')
+                        ->with('user')
+                        ->get()
+                        ->map(fn ($member) => $member->user)
+                        ->filter()
+                        ->all();
+
+                    $this->notificationService->notifyBoardArchived($board, $recipients);
+                }
             });
 
             return response()->json([

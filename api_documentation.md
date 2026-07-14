@@ -177,5 +177,38 @@ Prefix: `/api/sidebar`
 
 ---
 
+## 8. Task Management Notifications
+**[Membutuhkan Bearer Token]**
+
+Prefix: `/api/task-management/notifications`
+
+- `GET /api/task-management/notifications` — ambil daftar notifikasi terbaru untuk user login.
+- `GET /api/task-management/notifications/unread-count` — ambil jumlah notifikasi belum dibaca.
+- `PATCH /api/task-management/notifications/{id}/read` — tandai satu notifikasi sebagai dibaca.
+- `PATCH /api/task-management/notifications/read-all` — tandai semua notifikasi sebagai dibaca.
+- `DELETE /api/task-management/notifications/{id}` — hapus notifikasi.
+
+Contoh response:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 10,
+      "type": "TASK_ASSIGNED",
+      "title": "Tugas baru ditugaskan",
+      "message": "John menugaskan Anda untuk tugas API Integration.",
+      "is_read": false,
+      "created_at": "2026-07-14T00:00:00.000000Z",
+      "board": { "id": 2, "name": "Board" },
+      "task": { "id": 15, "title": "API Integration", "status": "todo" },
+      "created_by": { "id": 4, "name": "John" }
+    }
+  ]
+}
+```
+
+---
+
 > [!NOTE]
 > Semua route yang tidak menggunakan `GET` (seperti `POST`, `PUT`, `DELETE`) harus mengirimkan data dalam format `application/json` (Gunakan Header `Content-Type: application/json` dan `Accept: application/json`).

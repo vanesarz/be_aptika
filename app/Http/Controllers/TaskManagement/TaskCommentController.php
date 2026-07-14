@@ -7,6 +7,7 @@ use App\Models\BoardMember;
 use App\Models\Task;
 use App\Models\TaskActivity;
 use App\Models\TaskComment;
+use App\Services\TaskManagement\NotificationService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -15,6 +16,10 @@ use Illuminate\Support\Facades\DB;
 
 class TaskCommentController extends Controller
 {
+    public function __construct(protected NotificationService $notificationService)
+    {
+    }
+
     /**
      * Menampilkan komentar berdasarkan task_id jika disediakan.
      */
@@ -90,6 +95,16 @@ class TaskCommentController extends Controller
                     'user_id' => Auth::id(),
                     'activity' => 'User memberikan komentar',
                 ]);
+
+                $recipients = collect();
+                if ($task->creator) {
+                    $recipients->push($task->creator);
+                }
+                if ($task->assignee) {
+                    $recipients->push($task->assignee);
+                }
+
+                $this->notificationService->notifyTaskComment($task, Auth::user(), $recipients->unique('id')->values()->all());
 
                 return $comment;
             });

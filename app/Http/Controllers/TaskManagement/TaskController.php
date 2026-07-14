@@ -7,6 +7,7 @@ use App\Models\Board;
 use App\Models\BoardMember;
 use App\Models\Task;
 use App\Models\TaskActivity;
+use App\Services\TaskManagement\NotificationService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -15,6 +16,10 @@ use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
 {
+    public function __construct(protected NotificationService $notificationService)
+    {
+    }
+
     /**
      * Menampilkan daftar task yang dapat diakses user.
      */
@@ -177,6 +182,23 @@ class TaskController extends Controller
                     $this->createTaskActivity($task, 'Task diassign');
                 }
 
+                if (!empty($validated['assigned_to'])) {
+                    $recipient = \App\Models\User::find($validated['assigned_to']);
+                    if ($recipient) {
+                        // Notification MUST NOT break task creation/assignment.
+                        try {
+                            $this->notificationService->notifyTaskAssigned($task, $recipient);
+                        } catch (\Throwable $e) {
+                            \Log::error('notifyTaskAssigned failed', [
+                                'task_id' => $task->id,
+                                'recipient_id' => $recipient->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+                }
+
+
                 return $task;
             });
 
@@ -271,6 +293,46 @@ class TaskController extends Controller
                 if ($originalAssignee != $task->assigned_to) {
                     $this->createTaskActivity($task, 'Task diassign');
                 }
+
+                if ($originalStatus !== $task->status && $task->assigned_to) {
+                    $recipient = \App\Models\User::find($task->assigned_to);
+                    if ($recipient) {
+                        $this->notificationService->notifyStatusChanged($task, [$recipient]);
+                    }
+                }
+
+                if ($originalAssignee != $task->assigned_to && $task->assigned_to) {
+                    $recipient = \App\Models\User::find($task->assigned_to);
+                    if ($recipient) {
+                        // Notification MUST NOT break assignment updates.
+                        try {
+                            $this->notificationService->notifyTaskAssigned($task, $recipient);
+                        } catch (\Throwable $e) {
+                            \Log::error('notifyTaskAssigned (update) failed', [
+                                'task_id' => $task->id,
+                                'recipient_id' => $recipient->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+                }
+
+                if ($task->assigned_to && $task->board && $task->board->created_by) {
+                    // Notification MUST NOT break task update flow.
+                    try {
+                        $this->notificationService->notifyTaskUpdated(
+                            $task,
+                            Auth::user(),
+                            [$task->assignee()->first(), $task->creator()->first()]->filter()
+                        );
+                    } catch (\Throwable $e) {
+                        \Log::error('notifyTaskUpdated failed', [
+                            'task_id' => $task->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
             });
 
             return response()->json([

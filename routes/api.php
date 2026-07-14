@@ -291,5 +291,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/task-activities', [TaskActivityController::class, 'index']);
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/my-tasks', [MyTaskController::class, 'index']);
+
+        Route::get('/notifications', [\App\Http\Controllers\TaskManagement\NotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [\App\Http\Controllers\TaskManagement\NotificationController::class, 'unreadCount']);
+        Route::patch('/notifications/{id}/read', [\App\Http\Controllers\TaskManagement\NotificationController::class, 'markAsRead']);
+        Route::patch('/notifications/read-all', [\App\Http\Controllers\TaskManagement\NotificationController::class, 'markAllAsRead']);
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\TaskManagement\NotificationController::class, 'destroy']);
     });
 });

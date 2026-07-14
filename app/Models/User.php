@@ -78,4 +78,14 @@ class User extends Authenticatable
         return $this->hasMany(TaskActivity::class);
     }
 
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'user_id');
+    }
+
+    public function sentNotifications()
+    {
+        return $this->hasMany(Notification::class, 'created_by');
+    }
+
 }

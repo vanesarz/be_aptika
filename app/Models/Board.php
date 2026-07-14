@@ -38,4 +38,9 @@ class Board extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
 }

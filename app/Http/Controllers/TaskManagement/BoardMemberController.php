@@ -5,6 +5,7 @@ namespace App\Http\Controllers\TaskManagement;
 use App\Http\Controllers\Controller;
 use App\Models\Board;
 use App\Models\BoardMember;
+use App\Services\TaskManagement\NotificationService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -13,6 +14,10 @@ use Illuminate\Support\Facades\DB;
 
 class BoardMemberController extends Controller
 {
+    public function __construct(protected NotificationService $notificationService)
+    {
+    }
+
     /**
      * Mengirim permintaan join ke board.
      */
@@ -60,13 +65,17 @@ class BoardMemberController extends Controller
                 ], 409);
             }
 
-            $member = DB::transaction(function () use ($boardId, $userId) {
-                return BoardMember::create([
+            $member = DB::transaction(function () use ($board, $boardId, $userId) {
+                $member = BoardMember::create([
                     'board_id' => $boardId,
                     'user_id' => $userId,
                     'role' => 'member',
                     'membership_status' => 'pending',
                 ]);
+
+                $this->notificationService->notifyBoardJoinRequest($board, Auth::user());
+
+                return $member;
             });
 
             return response()->json([
@@ -190,11 +199,13 @@ class BoardMemberController extends Controller
                 ->where('user_id', $userId)
                 ->firstOrFail();
 
-            DB::transaction(function () use ($member) {
+            DB::transaction(function () use ($board, $member) {
                 $member->update([
                     'membership_status' => 'accepted',
                     'joined_at' => now(),
                 ]);
+
+                $this->notificationService->notifyBoardJoinApproved($board, $member->user()->firstOrFail(), Auth::user());
             });
 
             return response()->json([
@@ -249,10 +260,12 @@ class BoardMemberController extends Controller
                 ->where('user_id', $userId)
                 ->firstOrFail();
 
-            DB::transaction(function () use ($member) {
+            DB::transaction(function () use ($board, $member) {
                 $member->update([
                     'membership_status' => 'rejected',
                 ]);
+
+                $this->notificationService->notifyBoardJoinRejected($board, $member->user()->firstOrFail(), Auth::user());
             });
 
             return response()->json([
