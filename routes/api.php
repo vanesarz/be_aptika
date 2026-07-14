@@ -48,6 +48,7 @@ use App\Http\Controllers\TaskManagement\TaskCommentController;
 use App\Http\Controllers\TaskManagement\TaskActivityController;
 use App\Http\Controllers\TaskManagement\DashboardController;
 use App\Http\Controllers\TaskManagement\MyTaskController;
+use App\Http\Controllers\TaskManagement\NotificationController;
 
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
@@ -291,5 +292,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/task-activities', [TaskActivityController::class, 'index']);
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/my-tasks', [MyTaskController::class, 'index']);
+
+        // Notifications — urutan penting: /read-all & /unread-count sebelum /{id}
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     });
 });
