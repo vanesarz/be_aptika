@@ -42,8 +42,9 @@ class BoardController extends Controller
                     });
                 })
                 ->with([
-                    'pm',
-                    'members.user',
+                    'pm:id,name',
+                    'members:id,board_id,user_id,membership_status',
+                    'members.user:id,name',
                 ])
                 ->withCount('tasks')
                 ->orderByDesc('created_at')
@@ -69,7 +70,11 @@ class BoardController extends Controller
     public function show(string $id)
     {
         try {
-            $board = Board::with(['pm', 'members.user'])
+            $board = Board::with([
+                'pm:id,name',
+                'members:id,board_id,user_id,membership_status',
+                'members.user:id,name',
+            ])
                 ->withCount('tasks')
                 ->findOrFail($id);
 
@@ -145,7 +150,11 @@ class BoardController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Board berhasil dibuat.',
-                'data' => $board->load(['pm', 'members.user']),
+                'data' => $board->load([
+                    'pm:id,name',
+                    'members:id,board_id,user_id,membership_status',
+                    'members.user:id,name',
+                ]),
             ], 201);
         } catch (Exception $e) {
             return response()->json([
@@ -207,7 +216,11 @@ class BoardController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Board berhasil diperbarui.',
-                'data' => $board->fresh()->load(['pm', 'members.user']),
+                'data' => $board->fresh()->load([
+                    'pm:id,name',
+                    'members:id,board_id,user_id,membership_status',
+                    'members.user:id,name',
+                ]),
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([

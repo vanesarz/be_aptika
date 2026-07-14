@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\TaskManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\Board;
 use App\Models\BoardMember;
 use App\Models\Task;
 use App\Models\TaskActivity;
@@ -22,14 +23,43 @@ class TaskCommentController extends Controller
     {
         try {
             $taskId = $request->query('task_id');
+            $userId = Auth::id();
 
-            $comments = TaskComment::query()
-                ->with(['task', 'user'])
-                ->when($taskId, function ($query) use ($taskId) {
-                    $query->where('task_id', $taskId);
-                })
-                ->orderByDesc('created_at')
-                ->get();
+            if ($taskId) {
+                $task = Task::findOrFail($taskId);
+                $board = Board::findOrFail($task->board_id);
+                $isAdmin = Auth::check() && Auth::user()->role === 'admin';
+                $isMember = Auth::check() && BoardMember::where('board_id', $board->id)
+                    ->where('user_id', $userId)
+                    ->where('membership_status', 'accepted')
+                    ->exists();
+
+                if ($board->created_by !== $userId && !$isMember && !$isAdmin) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda tidak memiliki akses ke komentar task ini.',
+                        'errors' => 'Forbidden access.',
+                    ], 403);
+                }
+
+                $comments = TaskComment::query()
+                    ->with(['user:id,name'])
+                    ->where('task_id', $taskId)
+                    ->orderByDesc('created_at')
+                    ->get();
+            } else {
+                $comments = TaskComment::query()
+                    ->with(['user:id,name'])
+                    ->whereHas('task.board', function ($query) use ($userId) {
+                        $query->where('created_by', $userId)
+                            ->orWhereHas('members', function ($memberQuery) use ($userId) {
+                                $memberQuery->where('user_id', $userId)
+                                    ->where('membership_status', 'accepted');
+                            });
+                    })
+                    ->orderByDesc('created_at')
+                    ->get();
+            }
 
             return response()->json([
                 'success' => true,

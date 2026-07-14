@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\TaskManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\Task;
+use App\Models\Board;
+use App\Models\BoardMember;
 use App\Models\TaskActivity;
 use Exception;
 use Illuminate\Http\Request;
@@ -27,20 +30,41 @@ class TaskActivityController extends Controller
             $taskId = $request->query('task_id');
             $userId = Auth::id();
 
-            $activities = TaskActivity::query()
-                ->with(['task', 'user'])
-                ->when($taskId, function ($query) use ($taskId) {
-                    $query->where('task_id', $taskId);
-                })
-                ->whereHas('task.board', function ($query) use ($userId) {
-                    $query->where('created_by', $userId)
-                        ->orWhereHas('members', function ($memberQuery) use ($userId) {
-                            $memberQuery->where('user_id', $userId)
-                                ->where('membership_status', 'accepted');
-                        });
-                })
-                ->orderByDesc('created_at')
-                ->get();
+            if ($taskId) {
+                $task = Task::findOrFail($taskId);
+                $board = Board::findOrFail($task->board_id);
+                $isAdmin = Auth::user()->role === 'admin';
+                $isMember = BoardMember::where('board_id', $board->id)
+                    ->where('user_id', $userId)
+                    ->where('membership_status', 'accepted')
+                    ->exists();
+
+                if ($board->created_by !== $userId && !$isMember && !$isAdmin) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda tidak memiliki akses ke aktivitas task ini.',
+                        'errors' => 'Forbidden access.',
+                    ], 403);
+                }
+
+                $activities = TaskActivity::query()
+                    ->with(['user:id,name'])
+                    ->where('task_id', $taskId)
+                    ->orderByDesc('created_at')
+                    ->get();
+            } else {
+                $activities = TaskActivity::query()
+                    ->with(['user:id,name'])
+                    ->whereHas('task.board', function ($query) use ($userId) {
+                        $query->where('created_by', $userId)
+                            ->orWhereHas('members', function ($memberQuery) use ($userId) {
+                                $memberQuery->where('user_id', $userId)
+                                    ->where('membership_status', 'accepted');
+                            });
+                    })
+                    ->orderByDesc('created_at')
+                    ->get();
+            }
 
             return response()->json([
                 'success' => true,

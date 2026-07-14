@@ -35,7 +35,7 @@ class TaskController extends Controller
             $isAdmin = Auth::user()->role === 'admin';
 
             $tasks = Task::query()
-                ->with(['board', 'creator', 'assignee', 'comments', 'activities.user'])
+                ->with(['assignee:id,name'])
                 ->when($boardId, function ($query) use ($boardId) {
                     $query->where('board_id', $boardId);
                 })
