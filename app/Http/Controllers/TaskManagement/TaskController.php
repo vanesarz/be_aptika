@@ -31,27 +31,30 @@ class TaskController extends Controller
         try {
             $boardId = $request->query('board_id');
             $userId = Auth::id();
-
             $isAdmin = Auth::user()->role === 'admin';
+            $perPage = min((int) $request->query('per_page', 15), 50);
 
             $tasks = Task::query()
+                ->select('tasks.*')
                 ->with(['assignee:id,name'])
                 ->when($boardId, function ($query) use ($boardId) {
-                    $query->where('board_id', $boardId);
+                    $query->where('tasks.board_id', $boardId);
                 })
                 ->when(!$isAdmin, function ($query) use ($userId) {
-                    $query->where(function ($q) use ($userId) {
-                        $q->whereHas('board', function ($subQuery) use ($userId) {
-                            $subQuery->where('created_by', $userId)
-                                ->orWhereHas('members', function ($memberQuery) use ($userId) {
-                                    $memberQuery->where('user_id', $userId)
-                                        ->where('membership_status', 'accepted');
-                                });
+                    // JOIN langsung ke boards + board_members, hindari nested orWhereHas
+                    $query->join('boards', 'boards.id', '=', 'tasks.board_id')
+                        ->leftJoin('board_members as bm', function ($join) use ($userId) {
+                            $join->on('bm.board_id', '=', 'boards.id')
+                                ->where('bm.user_id', '=', $userId)
+                                ->where('bm.membership_status', '=', 'accepted');
+                        })
+                        ->where(function ($q) use ($userId) {
+                            $q->where('boards.created_by', $userId)
+                              ->orWhereNotNull('bm.id');
                         });
-                    });
                 })
-                ->orderByDesc('created_at')
-                ->get();
+                ->orderByDesc('tasks.created_at')
+                ->paginate($perPage);
 
             return response()->json([
                 'success' => true,
@@ -418,18 +421,22 @@ class TaskController extends Controller
         try {
             $userId = Auth::id();
             $boardId = $request->query('board_id');
+            $perPage = min((int) $request->query('per_page', 15), 50);
 
             $tasks = Task::query()
-                ->with(['board', 'creator', 'assignee'])
+                ->select('tasks.id', 'tasks.board_id', 'tasks.title', 'tasks.status',
+                         'tasks.priority', 'tasks.due_date', 'tasks.assigned_to',
+                         'tasks.created_by', 'tasks.created_at')
+                ->with(['board:id,name', 'assignee:id,name'])
                 ->where(function ($query) use ($userId) {
-                    $query->where('assigned_to', $userId)
-                        ->orWhere('created_by', $userId);
+                    $query->where('tasks.assigned_to', $userId)
+                        ->orWhere('tasks.created_by', $userId);
                 })
                 ->when($boardId, function ($query) use ($boardId) {
-                    $query->where('board_id', $boardId);
+                    $query->where('tasks.board_id', $boardId);
                 })
-                ->orderByDesc('created_at')
-                ->get();
+                ->orderByDesc('tasks.created_at')
+                ->paginate($perPage);
 
             return response()->json([
                 'success' => true,
