@@ -29,7 +29,7 @@ class BoardController extends Controller
 
             $userId = Auth::id();
             $isAdmin = Auth::user()->role === 'admin';
-            $perPage = min((int) $request->query('per_page', 15), 50);
+
 
             $boards = Board::query()
                 ->select('boards.*')
@@ -52,7 +52,7 @@ class BoardController extends Controller
                 ])
                 ->withCount('tasks')
                 ->orderByDesc('boards.created_at')
-                ->paginate($perPage);
+                ->get();
 
             return response()->json([
                 'success' => true,

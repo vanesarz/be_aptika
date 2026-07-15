@@ -32,7 +32,6 @@ class TaskController extends Controller
             $boardId = $request->query('board_id');
             $userId = Auth::id();
             $isAdmin = Auth::user()->role === 'admin';
-            $perPage = min((int) $request->query('per_page', 15), 50);
 
             $tasks = Task::query()
                 ->select('tasks.*')
@@ -54,7 +53,7 @@ class TaskController extends Controller
                         });
                 })
                 ->orderByDesc('tasks.created_at')
-                ->paginate($perPage);
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -421,7 +420,6 @@ class TaskController extends Controller
         try {
             $userId = Auth::id();
             $boardId = $request->query('board_id');
-            $perPage = min((int) $request->query('per_page', 15), 50);
 
             $tasks = Task::query()
                 ->select('tasks.id', 'tasks.board_id', 'tasks.title', 'tasks.status',
@@ -436,7 +434,7 @@ class TaskController extends Controller
                     $query->where('tasks.board_id', $boardId);
                 })
                 ->orderByDesc('tasks.created_at')
-                ->paginate($perPage);
+                ->get();
 
             return response()->json([
                 'success' => true,
