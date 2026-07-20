@@ -21,7 +21,7 @@ class BoardController extends Controller
     /**
      * Menampilkan daftar board yang dapat diakses user saat ini.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
             if (!Auth::check()) {
@@ -33,25 +33,30 @@ class BoardController extends Controller
             }
 
             $userId = Auth::id();
-
             $isAdmin = Auth::user()->role === 'admin';
 
+
             $boards = Board::query()
+                ->select('boards.*')
                 ->when(!$isAdmin, function ($query) use ($userId) {
-                    $query->where(function ($q) use ($userId) {
-                        $q->where('created_by', $userId)
-                            ->orWhere('visibility', 'public')
-                            ->orWhereHas('members', function ($subQuery) use ($userId) {
-                                $subQuery->where('user_id', $userId);
-                            });
+                    // Gunakan LEFT JOIN ke board_members agar lebih efisien daripada orWhereHas
+                    $query->leftJoin('board_members as bm_access', function ($join) use ($userId) {
+                        $join->on('bm_access.board_id', '=', 'boards.id')
+                            ->where('bm_access.user_id', '=', $userId);
+                    })
+                    ->where(function ($q) use ($userId) {
+                        $q->where('boards.created_by', $userId)
+                          ->orWhere('boards.visibility', 'public')
+                          ->orWhereNotNull('bm_access.id');
                     });
                 })
                 ->with([
-                    'pm',
-                    'members.user',
+                    'pm:id,name',
+                    'members:id,board_id,user_id,role,membership_status',
+                    'members.user:id,name',
                 ])
                 ->withCount('tasks')
-                ->orderByDesc('created_at')
+                ->orderByDesc('boards.created_at')
                 ->get();
 
             return response()->json([
@@ -74,7 +79,11 @@ class BoardController extends Controller
     public function show(string $id)
     {
         try {
-            $board = Board::with(['pm', 'members.user'])
+            $board = Board::with([
+                'pm:id,name',
+                'members:id,board_id,user_id,membership_status',
+                'members.user:id,name',
+            ])
                 ->withCount('tasks')
                 ->findOrFail($id);
 
@@ -150,7 +159,11 @@ class BoardController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Board berhasil dibuat.',
-                'data' => $board->load(['pm', 'members.user']),
+                'data' => $board->load([
+                    'pm:id,name',
+                    'members:id,board_id,user_id,membership_status',
+                    'members.user:id,name',
+                ]),
             ], 201);
         } catch (Exception $e) {
             return response()->json([
@@ -224,7 +237,11 @@ class BoardController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Board berhasil diperbarui.',
-                'data' => $board->fresh()->load(['pm', 'members.user']),
+                'data' => $board->fresh()->load([
+                    'pm:id,name',
+                    'members:id,board_id,user_id,membership_status',
+                    'members.user:id,name',
+                ]),
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
