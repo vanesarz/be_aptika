@@ -47,8 +47,6 @@ class MagangController extends Controller
 
             'cv_magang' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
 
-            'status_magang' => 'required|in:Belum mulai,Sedang magang,Selesai magang',
-
             'sertifikat' => 'nullable|in:Sudah menerima,Belum menerima',
 
             'keterangan' => 'nullable|string'
@@ -102,8 +100,6 @@ class MagangController extends Controller
             'tgl_selesai_magang' => 'required|date',
 
             'cv_magang' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
-
-            'status_magang' => 'required|in:Belum mulai,Sedang magang,Selesai magang',
 
             'sertifikat' => 'required|in:Sudah menerima,Belum menerima',
 

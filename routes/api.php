@@ -51,6 +51,7 @@ use App\Http\Controllers\TaskManagement\MyTaskController;
 use App\Http\Controllers\TaskManagement\NotificationController;
 
 use App\Http\Controllers\MagangController;
+use App\Http\Controllers\NotaDinasController;
 
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
@@ -306,4 +307,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // MAGANG
     Route::apiResource('magang', MagangController::class);
+
+    // NOTA DINAS
+    Route::apiResource('nota-dinas', NotaDinasController::class);
+    Route::get('nota-dinas-export', [NotaDinasController::class, 'export']);
 });
