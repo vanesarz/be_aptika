@@ -14,42 +14,36 @@ return new class extends Migration
     {
         Schema::table('notifications', function (Blueprint $table) {
 
-            // Tambah kolom type
             if (!Schema::hasColumn('notifications', 'type')) {
                 $table->string('type')
                     ->default('SYSTEM')
                     ->after('user_id');
             }
 
-            // Tambah kolom is_read
             if (!Schema::hasColumn('notifications', 'is_read')) {
                 $table->boolean('is_read')
                     ->default(false)
                     ->after('message');
             }
 
-            // Tambah kolom read_at
             if (!Schema::hasColumn('notifications', 'read_at')) {
                 $table->timestamp('read_at')
                     ->nullable()
                     ->after('is_read');
             }
 
-            // Tambah board_id
             if (!Schema::hasColumn('notifications', 'board_id')) {
                 $table->unsignedBigInteger('board_id')
                     ->nullable()
                     ->after('read_at');
             }
 
-            // Tambah task_id
             if (!Schema::hasColumn('notifications', 'task_id')) {
                 $table->unsignedBigInteger('task_id')
                     ->nullable()
                     ->after('board_id');
             }
 
-            // Tambah created_by_user_id
             if (!Schema::hasColumn('notifications', 'created_by_user_id')) {
                 $table->unsignedBigInteger('created_by_user_id')
                     ->nullable()
@@ -57,7 +51,7 @@ return new class extends Migration
             }
         });
 
-        // Foreign key board_id
+        // Foreign Key board_id
         if (
             Schema::hasColumn('notifications', 'board_id') &&
             !$this->foreignKeyExists('notifications', 'notifications_board_id_foreign')
@@ -70,7 +64,7 @@ return new class extends Migration
             });
         }
 
-        // Foreign key task_id
+        // Foreign Key task_id
         if (
             Schema::hasColumn('notifications', 'task_id') &&
             !$this->foreignKeyExists('notifications', 'notifications_task_id_foreign')
@@ -83,7 +77,7 @@ return new class extends Migration
             });
         }
 
-        // Foreign key created_by_user_id
+        // Foreign Key created_by_user_id
         if (
             Schema::hasColumn('notifications', 'created_by_user_id') &&
             !$this->foreignKeyExists('notifications', 'notifications_created_by_user_id_foreign')
@@ -96,7 +90,7 @@ return new class extends Migration
             });
         }
 
-        // Index user_id,is_read
+        // Index user_id + is_read
         if (!$this->indexExists('notifications', 'notifications_user_id_is_read_index')) {
             Schema::table('notifications', function (Blueprint $table) {
                 $table->index(['user_id', 'is_read']);
@@ -131,11 +125,11 @@ return new class extends Migration
             }
 
             if ($this->indexExists('notifications', 'notifications_user_id_is_read_index')) {
-                $table->dropIndex(['user_id', 'is_read']);
+                $table->dropIndex('notifications_user_id_is_read_index');
             }
 
             if ($this->indexExists('notifications', 'notifications_created_at_index')) {
-                $table->dropIndex(['created_at']);
+                $table->dropIndex('notifications_created_at_index');
             }
 
             $columns = [];
@@ -162,8 +156,12 @@ return new class extends Migration
     /**
      * Cek apakah foreign key sudah ada.
      */
-    private function foreignKeyExists($table, $foreign)
+    private function foreignKeyExists(string $table, string $foreign): bool
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return false;
+        }
+
         $database = DB::getDatabaseName();
 
         return DB::table('information_schema.TABLE_CONSTRAINTS')
@@ -176,8 +174,12 @@ return new class extends Migration
     /**
      * Cek apakah index sudah ada.
      */
-    private function indexExists($table, $index)
+    private function indexExists(string $table, string $index): bool
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return false;
+        }
+
         $database = DB::getDatabaseName();
 
         return DB::table('information_schema.STATISTICS')
