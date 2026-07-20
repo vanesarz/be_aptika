@@ -6,7 +6,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
+
+use App\Http\Controllers\SPD\DetailPerjalananController;
+use App\Http\Controllers\SPD\PegawaiController;
+use App\Http\Controllers\SPD\RekeningController;
+use App\Http\Controllers\SPD\SpdPesertaController;
+
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\SpdProposalController;
 
 use App\Http\Controllers\Rekayasa\ApplicationReplicationController;
 use App\Http\Controllers\Rekayasa\MentoringPerformanceController;
@@ -23,6 +30,7 @@ use App\Http\Controllers\SmartJabar\JoinedAppController;
 use App\Http\Controllers\SmartJabar\UsageStatController;
 use App\Http\Controllers\SadaJabar\AppIntegrationController;
 use App\Http\Controllers\SadaJabar\EncryptionStatController;
+use App\Http\Controllers\SpdController;
 
 use App\Http\Controllers\Appman\AppVulnerabilityController;
 use App\Http\Controllers\Appman\DevelopmentTargetController;
@@ -53,9 +61,20 @@ Route::patch(
     '/form-perubahan-it/{id}/assign',
     [FormPerubahanITController::class, 'assign']
 );
+use App\Http\Controllers\TaskManagement\BoardController;
+use App\Http\Controllers\TaskManagement\BoardMemberController;
+use App\Http\Controllers\TaskManagement\TaskController;
+use App\Http\Controllers\TaskManagement\TaskCommentController;
+use App\Http\Controllers\TaskManagement\TaskActivityController;
+use App\Http\Controllers\TaskManagement\DashboardController;
+use App\Http\Controllers\TaskManagement\MyTaskController;
+use App\Http\Controllers\TaskManagement\NotificationController;
+
+use App\Http\Controllers\MagangController;
 
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
 
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
@@ -74,6 +93,21 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('users', \App\Http\Controllers\Admin\UserController::class);
     });
 
+    Route::prefix('spd')->group(function () {
+        Route::apiResource('detail-perjalanan', DetailPerjalananController::class);
+        Route::patch(
+            'detail-perjalanan/{id}/status',
+            [DetailPerjalananController::class, 'updateStatus']
+        );
+    
+        Route::apiResource('rekening', RekeningController::class);
+        Route::apiResource('pegawai', PegawaiController::class);
+        Route::apiResource('spd-peserta', SpdPesertaController::class);
+});
+
+    Route::get('/spd/stats', [SpdProposalController::class, 'stats']);
+    // Route::apiResource('/spd', SpdProposalController::class);
+
     Route::prefix('smartjabar')->group(function () {
         Route::get('/export', [LaporanController::class, 'smartjabarExport']);
         Route::get('/joined-apps', [JoinedAppController::class, 'index']);
@@ -89,6 +123,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/stats/{id}/edit', [UsageStatController::class, 'edit']);
         Route::put('/stats/{id}', [UsageStatController::class, 'update']);
         Route::delete('/stats/{id}', [UsageStatController::class, 'destroy']);
+    });
+
+    Route::prefix('spd')->group(function () {
+        Route::get('/', [SpdController::class, 'index']);
+        Route::get('/{id}', [SpdController::class, 'show']);
+        Route::post('/', [SpdController::class, 'store']);
+        Route::put('/{id}', [SpdController::class, 'update']);
+        Route::delete('/{id}', [SpdController::class, 'destroy']);
+        Route::post('/laporan', [SpdController::class, 'submitLaporan']);
     });
 
     Route::prefix('sadajabar')->group(function () {
@@ -241,4 +284,46 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::put('/team-support-facilities/{id}', [TeamSupportFacilityController::class, 'update']);
         Route::delete('/team-support-facilities/{id}', [TeamSupportFacilityController::class, 'destroy']);
     });
+
+    Route::prefix('task-management')->group(function () {
+        Route::get('/boards', [BoardController::class, 'index']);
+        Route::post('/boards', [BoardController::class, 'store']);
+        Route::get('/boards/{id}', [BoardController::class, 'show']);
+        Route::put('/boards/{id}', [BoardController::class, 'update']);
+        Route::delete('/boards/{id}', [BoardController::class, 'destroy']);
+
+        Route::post('/boards/{boardId}/members/join', [BoardMemberController::class, 'join']);
+        Route::get('/boards/{boardId}/members', [BoardMemberController::class, 'members']);
+        Route::get('/boards/{boardId}/join-requests', [BoardMemberController::class, 'joinRequests']);
+        Route::post('/boards/{boardId}/members/{userId}/approve', [BoardMemberController::class, 'approve']);
+        Route::post('/boards/{boardId}/members/{userId}/reject', [BoardMemberController::class, 'reject']);
+        Route::delete('/boards/{boardId}/members/leave', [BoardMemberController::class, 'leave']);
+
+        Route::get('/tasks', [TaskController::class, 'index']);
+        Route::post('/tasks', [TaskController::class, 'store']);
+        Route::get('/tasks/my', [TaskController::class, 'myTasks']);
+        Route::get('/tasks/{id}', [TaskController::class, 'show']);
+        Route::put('/tasks/{id}', [TaskController::class, 'update']);
+        Route::patch('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
+        Route::patch('/tasks/{id}/approve', [TaskController::class, 'approve']);
+        Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
+
+        Route::get('/task-comments', [TaskCommentController::class, 'index']);
+        Route::post('/task-comments', [TaskCommentController::class, 'store']);
+        Route::delete('/task-comments/{id}', [TaskCommentController::class, 'destroy']);
+
+        Route::get('/task-activities', [TaskActivityController::class, 'index']);
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/my-tasks', [MyTaskController::class, 'index']);
+
+        // Notifications — urutan penting: /read-all & /unread-count sebelum /{id}
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    });
+
+    // MAGANG
+    Route::apiResource('magang', MagangController::class);
 });
