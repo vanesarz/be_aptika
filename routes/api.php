@@ -283,6 +283,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/tasks/{id}', [TaskController::class, 'show']);
         Route::put('/tasks/{id}', [TaskController::class, 'update']);
         Route::patch('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
+        Route::patch('/tasks/{id}/approve', [TaskController::class, 'approve']);
         Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
 
         Route::get('/task-comments', [TaskCommentController::class, 'index']);

@@ -251,6 +251,20 @@ class TaskController extends Controller
             $task = Task::findOrFail($id);
             $this->ensureBoardAccess($task->board_id);
 
+            if ($task->status === 'done') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Completed tasks cannot be modified.',
+                ], 403);
+            }
+
+            if (isset($validated['status']) && $validated['status'] === 'done') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'To mark a task as done, please use the approve feature.',
+                ], 422);
+            }
+
             $isPm = (int) $task->board->created_by === Auth::id();
             $isAdmin = Auth::user()->role === 'admin';
             if (!$isPm && !$isAdmin && (int) $task->assigned_to !== Auth::id()) {
@@ -374,6 +388,13 @@ class TaskController extends Controller
             $task = Task::findOrFail($id);
             $this->ensureBoardAccess($task->board_id);
 
+            if ($task->status === 'done') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Completed tasks cannot be modified.',
+                ], 403);
+            }
+
             $isAdmin = Auth::user()->role === 'admin';
             if ((int) $task->board->created_by !== Auth::id() && !$isAdmin) {
                 return response()->json([
@@ -428,6 +449,20 @@ class TaskController extends Controller
         try {
             $task = Task::findOrFail($id);
             $this->ensureBoardAccess($task->board_id);
+
+            if ($task->status === 'done') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Completed tasks cannot be modified.',
+                ], 403);
+            }
+
+            if ($validated['status'] === 'done') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'To mark a task as done, please use the approve feature.',
+                ], 422);
+            }
 
             $isAdmin = Auth::user()->role === 'admin';
             if ((int) $task->board->created_by !== Auth::id() && (int) $task->assigned_to !== Auth::id() && !$isAdmin) {
@@ -507,6 +542,68 @@ class TaskController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengambil task milik user.',
+                'errors' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve task. Hanya PM yang boleh approve task.
+     */
+    public function approve(string $id)
+    {
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+                'errors' => 'User belum login.',
+            ], 401);
+        }
+
+        try {
+            $task = Task::findOrFail($id);
+            $this->ensureBoardAccess($task->board_id);
+
+            $isAdmin = Auth::user()->role === 'admin';
+            if ((int) $task->board->created_by !== Auth::id() && !$isAdmin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only PM can approve tasks.',
+                    'errors' => 'Only PM can approve tasks.',
+                ], 403);
+            }
+
+            if ($task->status !== 'in_review') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Task must be in review before approval.',
+                    'errors' => 'Status task bukan in_review.',
+                ], 422);
+            }
+
+            DB::transaction(function () use ($task) {
+                $task->update([
+                    'status' => 'done',
+                    'completed_at' => now(),
+                ]);
+                $this->createTaskActivity($task, 'Task disetujui');
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Task approved successfully.',
+                'data' => $task->fresh()->load(['board', 'creator', 'assignee']),
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task tidak ditemukan.',
+                'errors' => $e->getMessage(),
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyetujui task.',
                 'errors' => $e->getMessage(),
             ], 500);
         }
