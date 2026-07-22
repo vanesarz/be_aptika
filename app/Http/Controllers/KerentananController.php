@@ -43,16 +43,20 @@ class KerentananController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'tanggal' => 'required|date',
-            'aplikasi' => 'required|string',
+            'tanggal' => 'nullable|date',
+            'aplikasi' => 'nullable|string',
             'url' => 'nullable|string',
-            'tingkat_kerentanan' => 'required|string', // e.g. Rendah, Sedang, Tinggi, Kritis
-            'perihal' => 'required|string',
+            'tingkat_kerentanan' => 'nullable|string',
+            'perihal' => 'nullable|string',
             'deskripsi' => 'nullable|string',
             'status' => 'nullable|string',
         ]);
 
         $validated['nomor_surat'] = Kerentanan::generateNomorSurat();
+        $validated['tanggal'] = $validated['tanggal'] ?? now()->toDateString();
+        $validated['perihal'] = $validated['perihal'] ?? 'Pemberitahuan Kerentanan Keamanan';
+        $validated['aplikasi'] = $validated['aplikasi'] ?? 'Aplikasi Pemprov Jabar';
+        $validated['tingkat_kerentanan'] = $validated['tingkat_kerentanan'] ?? 'Sedang';
         $validated['status'] = $validated['status'] ?? 'DRAF';
 
         $item = Kerentanan::create($validated);
@@ -79,11 +83,11 @@ class KerentananController extends Controller
         $item = Kerentanan::findOrFail($id);
 
         $validated = $request->validate([
-            'tanggal' => 'sometimes|required|date',
-            'aplikasi' => 'sometimes|required|string',
+            'tanggal' => 'nullable|date',
+            'aplikasi' => 'nullable|string',
             'url' => 'nullable|string',
-            'tingkat_kerentanan' => 'sometimes|required|string',
-            'perihal' => 'sometimes|required|string',
+            'tingkat_kerentanan' => 'nullable|string',
+            'perihal' => 'nullable|string',
             'deskripsi' => 'nullable|string',
             'status' => 'nullable|string',
         ]);
