@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('nota_dinas', function (Blueprint $table) {
-            $table->id();
-            $table->string('nomor_surat')->nullable();
-            $table->date('tanggal')->nullable();
-            $table->string('pengirim')->nullable();
-            $table->string('tujuan')->nullable();
-            $table->string('perihal')->nullable();
-            $table->text('isi')->nullable();
-            $table->string('status')->default('DRAF');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('nota_dinas')) {
+            Schema::create('nota_dinas', function (Blueprint $table) {
+                $table->id();
+                $table->string('nomor_surat')->nullable();
+                $table->date('tanggal')->nullable();
+                $table->string('pengirim')->nullable();
+                $table->string('tujuan')->nullable();
+                $table->string('perihal')->nullable();
+                $table->text('isi')->nullable();
+                $table->string('status')->default('DRAF');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('kerentanans', function (Blueprint $table) {
-            $table->id();
-            $table->string('nomor_surat')->nullable();
-            $table->date('tanggal')->nullable();
-            $table->string('aplikasi')->nullable();
-            $table->string('url')->nullable();
-            $table->string('tingkat_kerentanan')->nullable();
-            $table->string('perihal')->nullable();
-            $table->text('deskripsi')->nullable();
-            $table->string('status')->default('DRAF');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('kerentanans')) {
+            Schema::create('kerentanans', function (Blueprint $table) {
+                $table->id();
+                $table->string('nomor_surat')->nullable();
+                $table->date('tanggal')->nullable();
+                $table->string('aplikasi')->nullable();
+                $table->string('url')->nullable();
+                $table->string('tingkat_kerentanan')->nullable();
+                $table->string('perihal')->nullable();
+                $table->text('deskripsi')->nullable();
+                $table->string('status')->default('DRAF');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

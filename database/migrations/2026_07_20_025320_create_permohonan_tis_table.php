@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('permohonan_tis', function (Blueprint $table) {
-            $table->id();
-            $table->string('nomor_surat')->nullable();
-            $table->date('tanggal')->nullable();
-            $table->string('pengirim')->nullable();
-            $table->string('instansi')->nullable();
-            $table->string('jenis_permohonan')->nullable();
-            $table->string('perihal')->nullable();
-            $table->text('deskripsi')->nullable();
-            $table->string('status')->default('DRAF');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('permohonan_tis')) {
+            Schema::create('permohonan_tis', function (Blueprint $table) {
+                $table->id();
+                $table->string('nomor_surat')->nullable();
+                $table->date('tanggal')->nullable();
+                $table->string('pengirim')->nullable();
+                $table->string('instansi')->nullable();
+                $table->string('jenis_permohonan')->nullable();
+                $table->string('perihal')->nullable();
+                $table->text('deskripsi')->nullable();
+                $table->string('status')->default('DRAF');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
