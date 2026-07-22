@@ -311,4 +311,13 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // NOTA DINAS
     Route::apiResource('nota-dinas', NotaDinasController::class);
     Route::get('nota-dinas-export', [NotaDinasController::class, 'export']);
+
+    // HASIL PENTEST
+    Route::apiResource('hasil-pentest', \App\Http\Controllers\HasilPentestController::class);
+    Route::get('hasil-pentest-export', [\App\Http\Controllers\HasilPentestController::class, 'export']);
+
+    // KERENTANAN
+    Route::apiResource('kerentanan', \App\Http\Controllers\KerentananController::class);
+    Route::get('kerentanan-export', [\App\Http\Controllers\KerentananController::class, 'export']);
 });
+

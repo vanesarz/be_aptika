@@ -3,12 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-<<<<<<< HEAD
-
-class NotaDinas extends Model
-{
-    //
-=======
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NotaDinas extends Model
@@ -76,8 +70,8 @@ class NotaDinas extends Model
             'draft' => 'Draft',
             'terkirim' => 'Terkirim',
             'menunggu_tte' => 'Menunggu TTE',
-            default => ucfirst($this->status),
+            default => ucfirst((string) ($this->status ?? 'Draft')),
         };
     }
->>>>>>> 2e0d4161c2b82cff5f116e6d7144ce86a21c806b
 }
+
