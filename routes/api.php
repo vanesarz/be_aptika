@@ -52,10 +52,21 @@ use App\Http\Controllers\TaskManagement\NotificationController;
 
 use App\Http\Controllers\MagangController;
 use App\Http\Controllers\NotaDinasController;
+use App\Http\Controllers\PermohonanTiController;
 
 // Route::post('/register', [RegisteredUserController::class, 'store']); dinonaktifkan karena bisa di akses oleh siapa saja dan gak harus login
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 
+// Form Perubahan IT (permohonan TI)
+Route::prefix('form-perubahan-it')->group(function () {
+    Route::get('/', [PermohonanTiController::class, 'index']);
+    Route::get('/opd', [PermohonanTiController::class, 'getOpd']);
+    Route::post('/', [PermohonanTiController::class, 'store']);
+    Route::get('/ticket/{rfc}', [PermohonanTiController::class, 'getByRfc']);
+    Route::get('/{id}', [PermohonanTiController::class, 'show']);
+    Route::patch('/{id}/status', [PermohonanTiController::class, 'updateStatus']);
+    Route::patch('/{id}/assign', [PermohonanTiController::class, 'assign']);
+});
 
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
